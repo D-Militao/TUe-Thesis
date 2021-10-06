@@ -11,6 +11,7 @@ import snap
 
 from constants import Constants
 
+
 def total_size(o, handlers={}, verbose=False):
     """ Returns the approximate memory footprint an object and all of its contents.
 
@@ -94,8 +95,6 @@ def get_zero_degree_node_ids(network):
     return zero_deg_node_ids
 
 
-
-
 def print_type_attributes(network, id, attr_name_func, attr_value_func):
     attr_names = snap.TStrV()
     getattr(network, attr_name_func)(id, attr_names)
@@ -153,3 +152,15 @@ def check_merge_graph(network, evaluation_graph, merge_graph):
     #         NI, Constants.HN_EDGE_WEIGHT.value)
 
     print(f'{network.GetEdges()} -> {se_edge_weight} + {sn_edge_weight} -> {he_edge_weight} + ???')
+
+
+def transpose_graph(graph):
+    transposed_graph = snap.TNGraph.New()
+    for NI in graph.Nodes():
+        node_id = NI.GetId()
+        transposed_graph.AddNode(node_id)
+    for EI in graph.Edges():
+        src_node_id = EI.GetSrcNId()
+        dst_node_id = EI.GetDstNId()
+        transposed_graph.AddEdge(dst_node_id, src_node_id)
+    return transposed_graph

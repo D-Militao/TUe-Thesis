@@ -1,31 +1,74 @@
 import time
+import math
+import pandas as pd
+
+import snap
 
 from constants import Constants
 from graph_merge_summary import GraphMergeSummary
+import estimation
+import all_distances_sketches
 import util
 import load_data
 
+__start_time__ = time.time()
 
-def elapsed_time(start_time):
-    return time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+
+def elapsed_time(__start_time__):
+    return time.strftime("%H:%M:%S", time.gmtime(time.time() - __start_time__))
+
+
+def test_graph_merge_summary(network):
+    summary = GraphMergeSummary(network)
+    print(f"--> {elapsed_time(__start_time__)} Building evaluation network...")
+    summary.build_evalutation_network()
+    print(f"--> {elapsed_time(__start_time__)} Evaluation completed.")
+    print(
+        f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
+    print(
+        f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
+    print(f"--> {elapsed_time(__start_time__)} Building merge network...")
+    summary.build_merge_network(is_target_merge=False)
+    print(f"--> {elapsed_time(__start_time__)} Merging completed.")
+    print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
+    print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
+
+
+def test_ads(network, k):
+    print(f"--> {elapsed_time(__start_time__)} Creating sketch...")
+    graph_sketch = all_distances_sketches.GraphSketch(network, k)
+    graph_sketch.calculate_graph_sketch()
+    print(f"--> {elapsed_time(__start_time__)} Sketch created.")
+    size = 0
+    for node_id, sketch in graph_sketch.node_sketches.items():
+        sketch_size = sketch.Len()
+        if sketch_size > size:
+            size = sketch_size
+        # print(f"Sketch {node_id}:")
+        # for pair in sketch:
+        #     node_id = pair.GetVal1()
+        #     dist = pair.GetVal2()
+        #     print(f'\t({node_id}: {dist})')
+    print(size)
 
 
 if __name__ == '__main__':
-    start_time = time.time()
-    print(f"--> {elapsed_time(start_time)} Loading dataset...")
+    print(f"--> {elapsed_time(__start_time__)} Loading dataset...")
+    
     # network = load_data.make_pg_paper_network()
-    network = load_data.make_gmark_network(load_data.GMarkUseCase.uniprot, size=100000)
-    print(f"--> {elapsed_time(start_time)} Dataset loaded.")
+    network = load_data.make_gmark_network(load_data.GMarkUseCase.shop, size=250000)
+    
+    print(f"--> {elapsed_time(__start_time__)} Dataset loaded.")
     print(f"\t+++ Number of Nodes: {network.GetNodes()}")
     print(f"\t+++ Number of Edges: {network.GetEdges()}")
-    summary = GraphMergeSummary(network)
-    print(f"--> {elapsed_time(start_time)} Building evaluation network...")
-    summary.build_evalutation_network()
-    print(f"--> {elapsed_time(start_time)} Evaluation completed.")
-    print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
-    print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
-    print(f"--> {elapsed_time(start_time)} Building merge network...")
-    summary.build_merge_network(is_target_merge=False)
-    print(f"--> {elapsed_time(start_time)} Merging completed.")
-    print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
-    print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
+    
+    # test_graph_merge_summary(network)
+
+    # result = estimation.estimation_function_test(network, 42)
+    # result = estimation.estimation_function_test_paper(42)
+    # print(result)
+
+    test_ads(network, 10)
+
+    
+    
