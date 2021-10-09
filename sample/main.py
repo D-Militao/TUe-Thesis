@@ -1,3 +1,4 @@
+from pprint import pprint
 import time
 import math
 import pandas as pd
@@ -23,10 +24,8 @@ def test_graph_merge_summary(network):
     print(f"--> {elapsed_time(__start_time__)} Building evaluation network...")
     summary.build_evalutation_network()
     print(f"--> {elapsed_time(__start_time__)} Evaluation completed.")
-    print(
-        f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
-    print(
-        f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
+    print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
+    print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
     print(f"--> {elapsed_time(__start_time__)} Building merge network...")
     summary.build_merge_network(is_target_merge=False)
     print(f"--> {elapsed_time(__start_time__)} Merging completed.")
@@ -39,24 +38,39 @@ def test_ads(network, k):
     graph_sketch = all_distances_sketches.GraphSketch(network, k)
     graph_sketch.calculate_graph_sketch()
     print(f"--> {elapsed_time(__start_time__)} Sketch created.")
-    size = 0
-    for node_id, sketch in graph_sketch.node_sketches.items():
-        sketch_size = sketch.Len()
-        if sketch_size > size:
-            size = sketch_size
-        # print(f"Sketch {node_id}:")
-        # for pair in sketch:
-        #     node_id = pair.GetVal1()
-        #     dist = pair.GetVal2()
-        #     print(f'\t({node_id}: {dist})')
-    print(size)
+    
+    print(f"--> {elapsed_time(__start_time__)} Calculating neighborhood...")
+    graph_sketch.calculate_neighborhoods()
+    print(f"--> {elapsed_time(__start_time__)} Neighborhood calculated.")
+    
+    node_id = 939
+    tc_estimate = graph_sketch.estimate_cardinality(node_id)
+    bfs_tree = network.GetBfsTree(node_id, True, False)
+    tc = bfs_tree.GetNodes()
+    print(tc, tc_estimate)
+    # results = {}
+    # x = 0
+    # for node_id, neighborhood in graph_sketch.neighborhoods.items():
+    #     tc_estimate = 0
+    #     for dist, neighborhood_size in neighborhood.items():
+    #         tc_estimate += neighborhood_size
+    #     bfs_tree = network.GetBfsTree(node_id, True, False)
+    #     tc = bfs_tree.GetNodes()
+    #     results[node_id] = (tc, tc_estimate)
+    #     x += 1
+    #     if x == 20:
+    #         break
+    
+    # pprint(results)
+
+
 
 
 if __name__ == '__main__':
     print(f"--> {elapsed_time(__start_time__)} Loading dataset...")
     
     # network = load_data.make_pg_paper_network()
-    network = load_data.make_gmark_network(load_data.GMarkUseCase.shop, size=250000)
+    network = load_data.make_gmark_network(load_data.GMarkUseCase.shop, size=25000)
     
     print(f"--> {elapsed_time(__start_time__)} Dataset loaded.")
     print(f"\t+++ Number of Nodes: {network.GetNodes()}")

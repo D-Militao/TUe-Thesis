@@ -1,4 +1,5 @@
 import random
+import math
 from pprint import pprint
 from dataclasses import dataclass
 
@@ -49,6 +50,7 @@ class GraphSketch:
         self.node_ids = snap.TIntV()
         self.rankings = {}
         self.node_sketches = {}
+        self.neighborhoods = {}
         
         for NI in graph.Nodes():
             node_id = NI.GetId()
@@ -87,3 +89,33 @@ class GraphSketch:
                 if insert:
                     pair = snap.TIntPr(dijkstra_dist, rankee_node_id)
                     self.node_sketches[dijkstra_node_id].AddSorted(pair, False)
+
+    def calculate_neighborhoods(self):
+        for node_id, sketch in self.node_sketches.items():
+            neighborhood = snap.TIntFltVH()
+            for pair in sketch:
+                dist = pair.GetVal1()
+                pair_node_id = pair.GetVal2()
+                ranking = self.rankings[pair_node_id]
+                neighborhood.setdefault(dist, snap.TFltV()).AddSorted(ranking, True)
+
+            self.neighborhoods[node_id] = neighborhood
+
+    def estimate_cardinality(self, node_id, query_dist=math.inf):
+        neighborhood = self.neighborhoods[node_id]
+
+        all_neighbors = snap.TFltV()
+        for dist, neighbors in neighborhood.items():
+            if dist > query_dist:
+                break
+            all_neighbors.AddVMerged(neighbors)
+
+        neighborhood_size = all_neighbors.Len()
+        if neighborhood_size >= self.k:
+            tau = all_neighbors[self.k]
+            size_estimate = (self.k - 1) / tau
+            print(neighborhood_size, self.k, tau, size_estimate)
+        else:
+            size_estimate = neighborhood_size
+
+        return size_estimate
