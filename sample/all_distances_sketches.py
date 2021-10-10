@@ -65,7 +65,7 @@ class GraphSketch:
                     pair = snap.TIntPr(dijkstra_dist, rankee_node_id)
                     self.node_sketches[dijkstra_node_id].AddSorted(pair, False)
 
-    def estimate_cardinality_node_id(self, node_id, dist=math.inf):
+    def cardinality_estimation_node_id(self, node_id, dist=math.inf):
         sketch = self.node_sketches[node_id]
         neighbors = snap.TFltV()
         for pair in sketch:
@@ -95,7 +95,7 @@ class GraphSketch:
                     pair_ranking, True)        
             self.neighborhoods[node_id] = neighborhood
 
-    def estimate_cardinality_neighborhood(self, node_id, query_dist=math.inf):
+    def cardinality_estimation_neighborhood(self, node_id, query_dist=math.inf):
         neighborhood = self.neighborhoods[node_id]
         all_neighbors = snap.TFltV()
         counter = 0

@@ -11,7 +11,7 @@ import util
 
 def init_evaluation_network(edge_labels):
     evaluation_network = snap.TNEANet.New()
-    
+
     # Node attributes
     evaluation_network.AddFltAttrN(Constants.NODE_WEIGHT.value)
     evaluation_network.AddFltAttrN(Constants.EDGE_WEIGHT.value)
@@ -29,7 +29,7 @@ def init_evaluation_network(edge_labels):
 
 def init_merge_network(edge_labels):
     merge_network = snap.TNEANet.New()
-    
+
     # Node attributes
     merge_network.AddStrAttrE(Constants.AVG_NODE_WEIGHT.value)
 
@@ -173,7 +173,7 @@ class GraphMergeSummary:
             except ZeroDivisionError:
                 percentage = 0
             self.evaluation_network.AddFltAttrDatN(super_node.id, percentage,
-                                                 Constants.LABEL_PERCENTAGE.value + label)
+                                                   Constants.LABEL_PERCENTAGE.value + label)
 
             # For each edge label we want to know how many connection inside
             # the super node exist using only that edge label.
@@ -187,15 +187,17 @@ class GraphMergeSummary:
                     node_id, True, False)
                 reach = reach + bfs_tree.GetEdges()
             self.evaluation_network.AddFltAttrDatN(super_node.id, reach,
-                                                 Constants.LABEL_REACH.value + label)
+                                                   Constants.LABEL_REACH.value + label)
 
     def compute_super_node_attributes(self, super_node):
         """Computes the attributes for the given super node and adds them to 
         the evaluation network.
         """
-        _, edge_weight = self.compute_evaluation_compression_attributes(super_node)
+        _, edge_weight = self.compute_evaluation_compression_attributes(
+            super_node)
 
-        self.compute_evaluation_inner_connectivity_attributes(super_node, edge_weight)
+        self.compute_evaluation_inner_connectivity_attributes(
+            super_node, edge_weight)
 
         # (3) Outer-Connectivity -- computeConcatenationProperties this
         # function does still needs implementation
@@ -212,7 +214,7 @@ class GraphMergeSummary:
                 dst_node_id = original_NI.GetOutNId(idx)
                 dst_super_node_id = self.network.GetIntAttrDatN(
                     dst_node_id, Constants.META_NODE_ID.value)
-                # if it connects to a node that belongs to a different 
+                # if it connects to a node that belongs to a different
                 # super node then count it
                 if src_super_node_id != dst_super_node_id:
                     edge_id = self.network.GetEI(
@@ -222,7 +224,7 @@ class GraphMergeSummary:
                     super_node_connection_counter[(dst_super_node_id, label)] = (
                         super_node_connection_counter.setdefault(
                             (dst_super_node_id, label), 0) + 1)
-        
+
         # Add super edges and their attributes
         for (dst_super_node_id, label), edge_weight in super_node_connection_counter.items():
             # Add super edge to evaluation graph
@@ -259,7 +261,7 @@ class GraphMergeSummary:
         reach_label_value = 0
         attr_names = snap.TStrV()
         self.evaluation_network.FltAttrNameNI(super_node_id, attr_names)
-        
+
         for attr_name in attr_names:
             if not attr_name.startswith(Constants.LABEL_REACH.value):
                 continue
@@ -268,7 +270,7 @@ class GraphMergeSummary:
             if attr_value > reach_label_value:
                 reach_label = attr_name.split(Constants.SEPARATOR.value)[-1]
                 reach_label_value = attr_value
-        
+
         return reach_label, reach_label_value
 
     def compute_super_node_groups(self, is_target_merge):
@@ -277,20 +279,21 @@ class GraphMergeSummary:
         for NI in self.evaluation_network.Nodes():
             super_node_id = NI.GetId()
             degree = NI.GetInDeg() if is_target_merge else NI.GetOutDeg()
-            edge_labels = set() # TODO find better data structure
+            edge_labels = set()  # TODO find better data structure
 
             # Collect the labels os the in/out edges
             for idx in range(degree):
-                super_edge_id = NI.GetInEId(idx) if is_target_merge else NI.GetOutEId(idx)
+                super_edge_id = NI.GetInEId(
+                    idx) if is_target_merge else NI.GetOutEId(idx)
                 label = self.evaluation_network.GetStrAttrDatE(
                     super_edge_id, Constants.EDGE_LABEL.value)
                 edge_labels.add(label)
-            
+
             # TODO reachability value is not used
             # author tried to also group with it, but no info on results
             reach_label, reach_label_value = self.get_highest_reachability(
                 super_node_id)
-            
+
             super_node_ids_groups.setdefault(
                 (reach_label, frozenset(edge_labels)), snap.TIntV()).append(super_node_id)
 
@@ -310,7 +313,6 @@ class GraphMergeSummary:
 
         return hyper_nodes
 
-
     def compute_hyper_node_edges_and_attributes(self, hyper_node, is_target_merge):
         """Computes the attributes for the given hyper node and adds them to 
         the merge network.
@@ -325,7 +327,7 @@ class GraphMergeSummary:
             node_weight = self.evaluation_network.GetFltAttrDatN(NI, attr_name)
             node_attributes[attr_name] = (
                 node_attributes.setdefault(attr_name, 0) + node_weight)
-            
+
             # Sum the edge weight among all super nodes
             attr_name = Constants.EDGE_WEIGHT.value
             edge_weight = self.evaluation_network.GetFltAttrDatN(NI, attr_name)
@@ -336,14 +338,16 @@ class GraphMergeSummary:
             for label in self.edge_labels:
                 # Sum the label reach for each label in the super nodes
                 attr_name = Constants.LABEL_REACH.value + label
-                label_reach = self.evaluation_network.GetFltAttrDatN(NI, attr_name)
+                label_reach = self.evaluation_network.GetFltAttrDatN(
+                    NI, attr_name)
                 node_attributes[attr_name] = (
                     node_attributes.setdefault(attr_name, 0) + label_reach)
-                
+
                 # For the percentage of inner edge labels we need to multiply by the total edges
                 # TODO: why store the percentage and not just the total?
                 attr_name = Constants.LABEL_PERCENTAGE.value + label
-                label_percent = self.evaluation_network.GetFltAttrDatN(NI, attr_name)
+                label_percent = self.evaluation_network.GetFltAttrDatN(
+                    NI, attr_name)
                 node_attributes[attr_name] = (node_attributes.setdefault(
                     attr_name, 0) + (edge_weight * label_percent))
 
@@ -353,14 +357,16 @@ class GraphMergeSummary:
             # Collect the labels and edge weight of the in/out edges
             for idx in range(degree):
                 # Get super edge attributes
-                super_edge_id = original_NI.GetInEId(idx) if is_target_merge else original_NI.GetOutEId(idx)
+                super_edge_id = original_NI.GetInEId(
+                    idx) if is_target_merge else original_NI.GetOutEId(idx)
                 edge_weight = self.evaluation_network.GetFltAttrDatE(
                     super_edge_id, Constants.EDGE_WEIGHT.value)
                 edge_label = self.evaluation_network.GetStrAttrDatE(
                     super_edge_id, Constants.EDGE_LABEL.value)
 
                 # Get dst hyper node id
-                dst_super_node_id = original_NI.GetInNId(idx) if is_target_merge else original_NI.GetOutNId(idx)
+                dst_super_node_id = original_NI.GetInNId(
+                    idx) if is_target_merge else original_NI.GetOutNId(idx)
                 dst_hyper_node_id = self.evaluation_network.GetIntAttrDatN(
                     dst_super_node_id, Constants.META_NODE_ID.value)
 
@@ -368,9 +374,9 @@ class GraphMergeSummary:
                 hyper_edges[(dst_hyper_node_id, edge_label)] = (
                     hyper_edges.setdefault(
                         (dst_hyper_node_id, edge_label), 0) + edge_weight)
-        
-        # Now that we have sum of the (edge label percent * edge_weight) of 
-        # every super node, we divide it by the total_edge_weight (i.e. the 
+
+        # Now that we have sum of the (edge label percent * edge_weight) of
+        # every super node, we divide it by the total_edge_weight (i.e. the
         # edge weight of the hyper node)
         attr_name = Constants.EDGE_WEIGHT.value
         total_edge_weight = node_attributes[attr_name]
@@ -394,20 +400,20 @@ class GraphMergeSummary:
         attr_name = Constants.AVG_NODE_WEIGHT.value
         avg_node_weight = total_node_weight / hn_node_weight
         node_attributes[attr_name] = avg_node_weight
-        
+
         # TODO Still need to calculate frontier attributes
 
         # Add all the properties to the hyper node
         for attr_name, attr_value in node_attributes.items():
             self.merge_network.AddFltAttrDatN(
                 hyper_node.id, attr_value, attr_name)
-        
+
         # Calculate hyper edges and attributes
         for (dst_hyper_node_id, edge_label), sum_edge_weight in hyper_edges.items():
             # Add hyper edge to the merge graph
             hyper_edge_id = self.merge_network.AddEdge(
                 hyper_node.id, dst_hyper_node_id)
-            
+
             # Add label of the hyper edge
             self.merge_network.AddStrAttrDatE(
                 hyper_edge_id, label, Constants.EDGE_LABEL.value)
@@ -416,13 +422,11 @@ class GraphMergeSummary:
             self.merge_network.AddFltAttrDatE(
                 hyper_edge_id, sum_edge_weight, Constants.EDGE_WEIGHT.value)
 
-
-
     def build_merge_network(self, is_target_merge=True):
         # Check if there is a way to reverse the edges in the network
         # if so then we can just reverse the graph depending on the strategy
         super_node_groups = self.compute_super_node_groups(is_target_merge)
-        
+
         hyper_nodes = self.compute_hyper_nodes(super_node_groups)
 
         # Add all hyper nodes to evaluation graph
@@ -433,3 +437,6 @@ class GraphMergeSummary:
         for hyper_node_id, hyper_node in hyper_nodes.items():
             self.compute_hyper_node_edges_and_attributes(
                 hyper_node, is_target_merge)
+
+    def cardinality_estimation_node_id(self, node_id):
+        pass
