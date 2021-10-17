@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# ! Change project directory to match
 PROJECT_DIR="/home/daniel/dev/TUe-Thesis"
 
 data_dir="$PROJECT_DIR/data/"
@@ -22,6 +23,8 @@ echo "\n++++ Unzipping files...\n"
 yes n | gunzip -rk ./
 
 # Hard coded commands for the konect datasets in order to only extract the needed files
+# Add .txt extension to file so the data loading functions recognize it
+# TODO Find a better way to do this
 if [ -f out.wikipedia_link_en.txt ]
 then
     echo "++++ Skipping download.tsv.wikipedia_link_en.tar.bz2 because out.wikipedia_link_en.txt already exists."
