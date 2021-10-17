@@ -5,13 +5,7 @@ from dataclasses import dataclass
 
 import snap
 
-import util
-
-
-@dataclass
-class NodeIdDistance:
-    node_id: int
-    distance: float
+from snap_util import snap_util
 
 
 class GraphSketch:
@@ -19,8 +13,8 @@ class GraphSketch:
         self.graph = graph
         if isinstance(graph, snap.TUNGraph):
             self.tranposed_graph = graph
-        else:    
-            self.tranposed_graph = util.transpose_graph(graph)
+        else:
+            self.tranposed_graph = snap_util.transpose_graph(graph)
         self.k = k
         self.node_ids = snap.TIntV()
         self.rankings = {}
@@ -55,7 +49,8 @@ class GraphSketch:
                     if k_smallest_dist > dijkstra_dist:
                         insert = True
                     elif k_smallest_dist == dijkstra_dist and (sketch_len - self.k - 1) >= 0:
-                        k_min_one_smallest_dist = sketch[sketch_len - self.k - 1].GetVal1()
+                        k_min_one_smallest_dist = sketch[sketch_len -
+                                                         self.k - 1].GetVal1()
                         if sketch_len == self.k:
                             insert = True
                         elif k_min_one_smallest_dist > dijkstra_dist:
@@ -74,7 +69,7 @@ class GraphSketch:
                 pair_node_id = pair.GetVal2()
                 pair_ranking = self.rankings[pair_node_id]
                 neighbors.AddSorted(pair_ranking, True)
-        
+
         neighborhood_size = neighbors.Len()
         if neighborhood_size >= self.k:
             tau = neighbors[self.k - 1]
@@ -92,7 +87,7 @@ class GraphSketch:
                 pair_node_id = pair.GetVal2()
                 pair_ranking = self.rankings[pair_node_id]
                 neighborhood.setdefault(pair_dist, snap.TFltV()).AddSorted(
-                    pair_ranking, True)        
+                    pair_ranking, True)
             self.neighborhoods[node_id] = neighborhood
 
     def cardinality_estimation_neighborhood(self, node_id, query_dist=math.inf):

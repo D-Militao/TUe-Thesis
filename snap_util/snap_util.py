@@ -9,9 +9,6 @@ except ImportError:
 
 import snap
 
-from constants import Constants
-
-
 def total_size(o, handlers={}, verbose=False):
     """ Returns the approximate memory footprint an object and all of its contents.
 
@@ -128,31 +125,6 @@ def print_all_node_attributes(network):
                               "GetFltAttrDatN")
         print_type_attributes(network, node_id, "StrAttrNameNI",
                               "GetStrAttrDatN")
-
-
-def check_merge_graph(network, evaluation_graph, merge_graph):
-    se_edge_weight = 0
-    for EI in evaluation_graph.Edges():
-        se_edge_weight += evaluation_graph.GetFltAttrDatE(
-            EI, Constants.SE_EDGE_WEIGHT.value)
-
-    sn_edge_weight = 0
-    for NI in evaluation_graph.Nodes():
-        sn_edge_weight += evaluation_graph.GetFltAttrDatN(
-            NI, Constants.SN_EDGE_WEIGHT.value)
-
-    he_edge_weight = 0
-    for EI in merge_graph.Edges():
-        he_edge_weight += merge_graph.GetFltAttrDatE(
-            EI, Constants.HE_EDGE_WEIGHT.value)
-
-    # hn_edge_weight = 0
-    # for NI in merge_graph.Nodes():
-    #     hn_edge_weight += merge_graph.GetFltAttrDatN(
-    #         NI, Constants.HN_EDGE_WEIGHT.value)
-
-    print(f'{network.GetEdges()} -> {se_edge_weight} + {sn_edge_weight} -> {he_edge_weight} + ???')
-
 
 def transpose_graph(graph):
     transposed_graph = snap.TNGraph.New()
