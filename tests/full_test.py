@@ -14,22 +14,6 @@ from .test_util import elapsed_time, elapsed_time_str, stopwatch
 from .test_all_distance_sketch import test_time_all_distance_sketch_node_ids, test_memory_all_distance_sketch_node_ids
 
 
-# def test_graph_merge_summary(network):
-#     summary = GraphMergeSummary(network)
-#     print(f"--> {elapsed_time_str(__start_time__)} Building evaluation network...")
-#     summary.build_evalutation_network()
-#     print(f"--> {elapsed_time_str(__start_time__)} Evaluation completed.")
-#     print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
-#     print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
-#     print(f"--> {elapsed_time_str(__start_time__)} Building merge network...")
-#     summary.build_merge_network(is_target_merge=False)
-#     print(f"--> {elapsed_time_str(__start_time__)} Merging completed.")
-#     print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
-#     print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
-#     snap_util.print_all_edge_attributes(summary.merge_network)
-#     snap_util.print_all_node_attributes(summary.merge_network)
-
-
 def full_test_network_summary(network, node_ids, general_data, tc_data):
     merge_types = [False, True]
     N = node_ids.Len()
@@ -72,7 +56,6 @@ def full_test_network_summary(network, node_ids, general_data, tc_data):
         general_data.setdefault(f'{label_aux} merge time', []).append(merge_time) # snap.TFltV()
         general_data.setdefault(
             f'{label_aux} total estimation time N={N}', []).append(total_estimation_time) # snap.TFltV()
-        break
 
 
 def full_test_memory_network(network, k_values: list, seed: int, N: int, memory_results: dict) -> pd.DataFrame:
@@ -80,7 +63,9 @@ def full_test_memory_network(network, k_values: list, seed: int, N: int, memory_
     node_ids = snap.TIntV()
     
     rnd = snap.TRnd(seed)
-    # rnd.Randomize() # Omit this line to get the same return values for different program executions 
+    # Omit rnd.Randomize() line to get the same return values for different 
+    # program executions 
+    # rnd.Randomize()
     for i in range(N):
         node_ids.append(network.GetRndNId(rnd))
     node_results['Node ids'] = node_ids
@@ -157,7 +142,9 @@ def full_test_time_network(network, k_values: list, seed: int, N: int, time_resu
     node_ids = snap.TIntV()
     
     rnd = snap.TRnd(seed)
-    # rnd.Randomize() # Omit this line to get the same return values for different program executions 
+    # Omit rnd.Randomize() line to get the same return values for different 
+    # program executions 
+    # rnd.Randomize()
     for i in range(N):
         node_ids.append(network.GetRndNId(rnd))
     node_results['Node ids'] = node_ids
@@ -174,10 +161,13 @@ def full_test_time_network(network, k_values: list, seed: int, N: int, time_resu
     
     for k in k_values:
         print(f'[{stopwatch()}] Testing sketch for k={k}.')
-        sketch_construction_time, total_estimation_time, estimates = test_time_all_distance_sketch_node_ids(network, node_ids, k)
+        sketch_construction_time, total_estimation_time, estimates = \
+            test_time_all_distance_sketch_node_ids(network, node_ids, k)
         node_results[f"ADS k={k}"] = estimates
-        time_results.setdefault(f"ADS k={k} construction time", []).append(sketch_construction_time)
-        time_results.setdefault(f"ADS k={k} total estimation time", []).append(total_estimation_time)
+        time_results.setdefault(f"ADS k={k} construction time", []).append(
+            sketch_construction_time)
+        time_results.setdefault(f"ADS k={k} total estimation time", []).append(
+            total_estimation_time)
     
     # full_test_network_summary(network, node_ids, general_data, tc_data)
     return node_results
@@ -226,7 +216,7 @@ def full_test(seed, N, k_values=[5, 10, 50, 100]):
                 size = os.stat(path).st_size
                 files_sizes[file] = size
     
-    # We need them separate because the memory tests cause a slow down of ~30%
+    # We need time and memory tests done separately because 
     full_test_time(seed, N, k_values, files_sizes, root)
     full_test_memory(seed, N, k_values, files_sizes, root)
 
@@ -234,7 +224,7 @@ def full_test(seed, N, k_values=[5, 10, 50, 100]):
 
 
 
-
+# Used previously to test gmark and will be needed in the future
 # network_names_methods = {
     # 'pg_paper': partial(load_data.make_pg_paper_network),
     # 'shop_1k': partial(load_data.load_gmark_network,load_data.GMarkUseCase.shop, size=1000),
@@ -244,8 +234,7 @@ def full_test(seed, N, k_values=[5, 10, 50, 100]):
     # 'shop_100k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=100000),
     # 'shop_200k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=200000),
     # 'shop_250k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=250000)
-# }
-    
+# }    
 # for network_name, load_network_method in network_names_methods.items():
 #     network = load_network_method()
 #     general_data.setdefault('Network', snap.TStrV()).append(network_name)
