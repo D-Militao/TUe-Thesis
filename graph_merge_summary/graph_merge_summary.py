@@ -2,10 +2,8 @@ import itertools
 import snap
 
 from dataclasses import dataclass
-from itertools import count, groupby
 
-
-from constants import Constants
+from .constants import Constants
 from snap_util import snap_util
 
 @dataclass
