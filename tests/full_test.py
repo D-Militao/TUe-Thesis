@@ -11,26 +11,23 @@ from .context import GraphMergeSummary
 from .context import GraphSketch
 from .context import estimation_function
 from .test_util import elapsed_time, elapsed_time_str, stopwatch
-from .test_all_distance_sketch import test_time_all_distance_sketch_node_ids
+from .test_all_distance_sketch import test_time_all_distance_sketch_node_ids, test_memory_all_distance_sketch_node_ids
 
 
-def test_graph_merge_summary(network):
-    summary = GraphMergeSummary(network)
-    print(f"--> {elapsed_time_str(__start_time__)} Building evaluation network...")
-    summary.build_evalutation_network()
-    print(f"--> {elapsed_time_str(__start_time__)} Evaluation completed.")
-    print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
-    print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
-    print(f"--> {elapsed_time_str(__start_time__)} Building merge network...")
-    summary.build_merge_network(is_target_merge=False)
-    print(f"--> {elapsed_time_str(__start_time__)} Merging completed.")
-    print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
-    print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
-    snap_util.print_all_edge_attributes(summary.merge_network)
-    snap_util.print_all_node_attributes(summary.merge_network)
-
-
-
+# def test_graph_merge_summary(network):
+#     summary = GraphMergeSummary(network)
+#     print(f"--> {elapsed_time_str(__start_time__)} Building evaluation network...")
+#     summary.build_evalutation_network()
+#     print(f"--> {elapsed_time_str(__start_time__)} Evaluation completed.")
+#     print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
+#     print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
+#     print(f"--> {elapsed_time_str(__start_time__)} Building merge network...")
+#     summary.build_merge_network(is_target_merge=False)
+#     print(f"--> {elapsed_time_str(__start_time__)} Merging completed.")
+#     print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
+#     print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
+#     snap_util.print_all_edge_attributes(summary.merge_network)
+#     snap_util.print_all_node_attributes(summary.merge_network)
 
 
 def full_test_network_summary(network, node_ids, general_data, tc_data):
@@ -78,7 +75,7 @@ def full_test_network_summary(network, node_ids, general_data, tc_data):
         break
 
 
-def full_test_memory_network(network, k_values: list, seed: int, N: int, network_results: dict) -> pd.DataFrame:
+def full_test_memory_network(network, k_values: list, seed: int, N: int, memory_results: dict) -> pd.DataFrame:
     node_results = pd.DataFrame()
     node_ids = snap.TIntV()
     
@@ -89,31 +86,44 @@ def full_test_memory_network(network, k_values: list, seed: int, N: int, network
     node_results['Node ids'] = node_ids
 
     print(f'[{stopwatch()}] Calculating TC for N={node_ids.Len()} nodes.')
+    before_tc, _ = tracemalloc.get_traced_memory()
+    tracemalloc.reset_peak()
     tc_values = snap.TIntV()
     for node_id in node_ids:
         bfs_tree = network.GetBfsTree(node_id, True, False)
         tc_values.append(bfs_tree.GetNodes())
     node_results['TC'] = tc_values
-    network_results.setdefault(f"TC time", []).append(total_tc_time)
+    after_tc, tc_peak = tracemalloc.get_traced_memory()
+    memory_results.setdefault(f"TC size", []).append(after_tc-before_tc)
+    memory_results.setdefault(f"TC peak", []).append(tc_peak-before_tc)
     
+    # Test sketch
     for k in k_values:
         print(f'[{stopwatch()}] Testing sketch for k={k}.')
-        sketch_construction_time, total_estimation_time, estimates = test_time_all_distance_sketch_node_ids(network, node_ids, k)
+        sketch_size, sketch_peak, total_estimation_size, estimation_peak, estimates = test_memory_all_distance_sketch_node_ids(network, node_ids, k)
         node_results[f"ADS k={k}"] = estimates
-        network_results.setdefault(f"ADS k={k} memory size", []).append(sketch_construction_time)
-        network_results.setdefault(f"ADS k={k} total estimation time", []).append(total_estimation_time)
+        memory_results.setdefault(f"ADS k={k} size", []).append(sketch_size)
+        memory_results.setdefault(f"ADS k={k} peak", []).append(sketch_peak)
+        memory_results.setdefault(f"ADS k={k} total estimation size", []).append(total_estimation_size)
+        memory_results.setdefault(f"ADS k={k} total estimation peak", []).append(estimation_peak)
     
+    # Test summary
     # full_test_network_summary(network, node_ids, general_data, tc_data)
+
+    # Test estimation function
+
     return node_results
 
 
 def full_test_memory(seed, N, k_values, files_sizes, root):
     test_timestamp = strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
-    time_results = {}
-    time_results['Network'] = []
-    time_results['#Nodes'] = []
-    time_results['#Edges'] = []
-    time_results['Size'] = []
+    print(f'+++++ Starting memory tests. +++++')
+    memory_results = {}
+    memory_results['Network'] = []
+    memory_results['#Nodes'] = []
+    memory_results['#Edges'] = []
+    memory_results['Memory'] = []
+    memory_results['Loading Peak'] = []
 
     tracemalloc.start()
     for file, size in sorted(files_sizes.items(), key=lambda item: item[1]):
@@ -123,24 +133,23 @@ def full_test_memory(seed, N, k_values, files_sizes, root):
         tracemalloc.reset_peak()
         print(f"[{stopwatch()}] Loading {filepath}...")
         network = load_data.load_unlabeled_edge_file(filepath)
-        loading_time = elapsed_time(start_time)
+        after_loading , loading_peak = tracemalloc.get_traced_memory()
         no_nodes = network.GetNodes()
         no_edges = network.GetEdges()
-        print(f"[{stopwatch()}] Loaded in: {elapsed_time_str(start_time)}")
         print(f"[{stopwatch()}] Nodes: {no_nodes}, Edges: {no_edges}")
         
-        time_results['Network'].append(file)
-        time_results['Loading time'].append(loading_time)
-        time_results['#Nodes'].append(no_nodes)
-        time_results['#Edges'].append(no_edges)
+        memory_results['Network'].append(file)
+        memory_results['#Nodes'].append(no_nodes)
+        memory_results['#Edges'].append(no_edges)
+        memory_results['Memory'].append(after_loading-before_loading)
+        memory_results['Loading Peak'].append(loading_peak-before_loading)
 
-        node_results = full_test_time_network(network, k_values, seed, N, time_results)
-
-        node_results.to_csv(f"results/{test_timestamp}_node_results_N={N}.csv", index=False)
-        break
+        node_results = full_test_memory_network(network, k_values, seed, N, memory_results)
+        node_results.to_csv(f"results/{test_timestamp}_memory_node_results_N={N}.csv", index=False)
+        
     
-    network_results_df = pd.DataFrame.from_dict(time_results)
-    network_results_df.to_csv(f"results/{test_timestamp}_time_results_N={N}.csv", index=False)
+    network_results_df = pd.DataFrame.from_dict(memory_results)
+    network_results_df.to_csv(f"results/{test_timestamp}_memory_results_N={N}.csv", index=False)
 
 
 def full_test_time_network(network, k_values: list, seed: int, N: int, time_results: dict) -> pd.DataFrame:
@@ -176,6 +185,7 @@ def full_test_time_network(network, k_values: list, seed: int, N: int, time_resu
 
 def full_test_time(seed, N, k_values, files_sizes, root):
     test_timestamp = strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
+    print(f'+++++ Starting time tests. +++++')
     time_results = {}
     time_results['Network'] = []
     time_results['#Nodes'] = []
@@ -200,9 +210,7 @@ def full_test_time(seed, N, k_values, files_sizes, root):
         time_results['#Edges'].append(no_edges)
 
         node_results = full_test_time_network(network, k_values, seed, N, time_results)
-
-        node_results.to_csv(f"results/{test_timestamp}_node_results_N={N}.csv", index=False)
-        break
+        node_results.to_csv(f"results/{test_timestamp}_time_node_results_N={N}.csv", index=False)
     
     network_results_df = pd.DataFrame.from_dict(time_results)
     network_results_df.to_csv(f"results/{test_timestamp}_time_results_N={N}.csv", index=False)
@@ -213,7 +221,7 @@ def full_test(seed, N, k_values=[5, 10, 50, 100]):
     files_sizes = {}
     for root, dirs, files in os.walk("data"):
         for file in files:
-            if file.endswith(".txt"):
+            if file.endswith("wiki-Vote.txt"):
                 path = os.path.join(root, file)
                 size = os.stat(path).st_size
                 files_sizes[file] = size
