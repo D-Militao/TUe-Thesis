@@ -60,6 +60,90 @@ class GraphSketch:
                     pair = snap.TIntPr(dijkstra_dist, rankee_node_id)
                     self.node_sketches[dijkstra_node_id].AddSorted(pair, False)
 
+    def graph_sketch_bfs(self, rankee_node_id: int):
+        distances = {}
+        colors = {}
+        parents = {}
+        queue = snap.TIntV()
+        queue.append(rankee_node_id)
+        while not queue.Empty():
+            pop_index = queue.Len() - 1
+            node_id = queue.pop(pop_index)
+            NI = self.tranposed_graph.GetNI(node_id)
+            out_node_ids = NI.GetOutEdges()
+            for out_node_id in out_node_ids:
+                if out_node_id not in colors:
+                    # ! do the insertion checks
+                    colors[out_node_id] = 0
+                    distances[out_node_id] = distances[node_id] + 1
+                    parents[out_node_id] = node_id
+                    queue.append(out_node_id)
+            colors[node_id] = 1
+
+        # NI = self.tranposed_graph.GetNI(dijkstra_node_id)
+        # out_node_ids = NI.GetOutEdges()
+        # for out_node_id in out_node_ids:
+        #     insert = False
+        #     sketch = self.node_sketches[out_node_id]
+        #     sketch_len = sketch.Len()
+        #     # if the node sketch isn't size k then we can always insert
+        #     if sketch_len < self.k:
+        #         insert = True
+        #     # remember, entries already in the node sketch all have a lower rank than the node we are currently considering
+        #     # if the kth smallest distant in the node sketch is bigger then we can insert
+        #     else:
+        #         k_smallest_dist = sketch[sketch_len - self.k].GetVal1()
+        #         if k_smallest_dist > dist:
+        #             insert = True
+        #         elif k_smallest_dist == dist and (sketch_len - self.k - 1) >= 0:
+        #             k_min_one_smallest_dist = sketch[sketch_len -
+        #                                                 self.k - 1].GetVal1()
+        #             if sketch_len == self.k:
+        #                 insert = True
+        #             elif k_min_one_smallest_dist > dist:
+        #                 insert = True
+
+        #     if insert:
+        #         pair = snap.TIntPr(dist, rankee_node_id)
+        #         self.node_sketches[out_node_id].AddSorted(pair, False)
+        #         self.graph_sketch_bfs(rankee_node_id, )
+        #     else:
+        #         return
+
+    def calculate_graph_sketch_fast(self):
+        for rankee_node_id, rankee_rank in sorted(self.rankings.items(), key=lambda item: item[1]):
+            # node_id_dist is ordered by distance in ascending order
+            pair = snap.TIntPr(0, rankee_node_id)
+            self.node_sketches[rankee_node_id].AddSorted(pair, False)
+            self.graph_sketch_bfs(rankee_node_id, rankee_node_id, 1)
+                
+            len_short_path, node_id_shortest_dist = self.tranposed_graph.GetShortPathAll(
+                rankee_node_id, True)
+            for dijkstra_node_id, dijkstra_dist in node_id_shortest_dist.items():
+                insert = False
+                sketch = self.node_sketches[dijkstra_node_id]
+                sketch_len = sketch.Len()
+                # if the node sketch isn't size k then we can always insert
+                if sketch_len < self.k:
+                    insert = True
+                # remember, entries already in the node sketch all have a lower rank than the node we are currently considering
+                # if the kth smallest distant in the node sketch is bigger then we can insert
+                else:
+                    k_smallest_dist = sketch[sketch_len - self.k].GetVal1()
+                    if k_smallest_dist > dijkstra_dist:
+                        insert = True
+                    elif k_smallest_dist == dijkstra_dist and (sketch_len - self.k - 1) >= 0:
+                        k_min_one_smallest_dist = sketch[sketch_len -
+                                                         self.k - 1].GetVal1()
+                        if sketch_len == self.k:
+                            insert = True
+                        elif k_min_one_smallest_dist > dijkstra_dist:
+                            insert = True
+
+                if insert:
+                    pair = snap.TIntPr(dijkstra_dist, rankee_node_id)
+                    self.node_sketches[dijkstra_node_id].AddSorted(pair, False)
+
     def cardinality_estimation_node_id(self, node_id, dist=math.inf):
         sketch = self.node_sketches[node_id]
         neighbors = snap.TFltV()
