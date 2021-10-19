@@ -1,3 +1,4 @@
+from enum import Enum
 from time import time, strftime, gmtime
 from functools import partial
 import os
@@ -10,218 +11,160 @@ from .context import snap_util, load_data
 from .context import GraphMergeSummary
 from .context import GraphSketch
 from .context import estimation_function
-from .test_util import elapsed_time, elapsed_time_str, stopwatch
-from .test_all_distance_sketch import test_time_all_distance_sketch_node_ids, test_memory_all_distance_sketch_node_ids
+from .test_util import TestTracker, elapsed_time, elapsed_time_str, stopwatch, current_date_time_str
 
 
-def full_test_network_summary(network, node_ids, general_data, tc_data):
-    merge_types = [False, True]
-    N = node_ids.Len()
+class FullTest:
+    class ResultsLabels(str, Enum):
+        NETWORK = 'Network'
+        N_NODES = 'No. nodes'
+        N_EDGES = 'No. edges'
+        N_Z_DEG = 'No. zero degree'
+        MAX_DEG = 'Max degree'
+        LOAD_TIME = 'Loading time'
+        LOAD_MEM = 'Loading memory'
+        LOAD_MEM_PEAK = 'Loading memory peak'
+        TC_TIME = "TC time"
+        TC_MEM = "TC memory"
+        TC_MEM_PEAK = "TC memory peak"
+        SKETCH_CREATION_TIME = "Sketch creation time"
+        SKETCH_CREATION_MEM = "Sketch creation memory"
+        SKETCH_CREATION_MEM_PEAK = "Sketch creation memory peak"
+        SKETCH_EST_TIME = "Sketch estimation time"
+        SKETCH_EST_MEM = "Sketch estimation memory"
+        SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
 
-    start_init = time()
-    summary = GraphMergeSummary(network)
-    init_time = elapsed_time(start_init)
+        def __str__(self) -> str:
+            return str.__str__(self)
+
+    def __init__(self, seed=42, N=1000, k_values=[5, 10, 50, 100], track_mem=False):
+        self.seed = seed
+        self.N = N
+        self.k_values = k_values
+        self.track_mem = track_mem
+        self.results = {}
+        for label in self.ResultsLabels:
+            if label.startswith("Sketch"):
+                for k in k_values:
+                    self.results[label + f' k={k}'] = []
+            else:
+                self.results[label] = []
+        self.test_tracker = TestTracker(track_mem)
+        self.test_timestamp = current_date_time_str()
+
+    def load_network(self, root, file):
+        filepath = os.path.join(root, file)
+        print(f"[{stopwatch()}] Loading {filepath}...")
         
-    start_eval = time()
-    summary.build_evalutation_network()
-    eval_time = elapsed_time(start_eval)
-    print(f"\t+++ Number of super nodes: {summary.evaluation_network.GetNodes()}")
-    print(f"\t+++ Number of super edges: {summary.evaluation_network.GetEdges()}")
+        self.test_tracker.start()
+        network = load_data.load_unlabeled_edge_file(filepath)
+        load_time, load_mem, load_mem_peak = self.test_tracker.track()
+        
+        n_nodes = network.GetNodes()
+        n_edges = network.GetEdges()
+        n_z_deg = network.CntDegNodes(0)
+        max_degree = snap.MxDegree(network)
+        print(f"[{stopwatch()}] Nodes: {n_nodes}, Edges: {n_edges}")
 
-    general_data.setdefault(f'Summary init time', []).append(init_time) # snap.TFltV()
-    general_data.setdefault(f'Summary evaluation time', []).append(eval_time) # snap.TFltV()
+        self.results[self.ResultsLabels.NETWORK].append(file)
+        self.results[self.ResultsLabels.N_NODES].append(n_nodes)
+        self.results[self.ResultsLabels.N_EDGES].append(n_edges)
+        self.results[self.ResultsLabels.N_Z_DEG].append(n_z_deg)
+        self.results[self.ResultsLabels.MAX_DEG].append(max_degree)
+        self.results[self.ResultsLabels.LOAD_TIME].append(load_time)
+        self.results[self.ResultsLabels.LOAD_MEM].append(load_mem)
+        self.results[self.ResultsLabels.LOAD_MEM_PEAK].append(load_mem_peak)
 
-    for merge_type in merge_types:
-        label_aux = f'Summary is_target_merge={merge_type}'
-        start_merge = time()
-        summary.build_merge_network(is_target_merge=merge_types)
-        merge_time = elapsed_time(start_merge)
-        print(f"\t+++ Number of hyper nodes: {summary.merge_network.GetNodes()}")
-        print(f"\t+++ Number of hyper edges: {summary.merge_network.GetEdges()}")
+        return network
 
-        tc_estimates = [] # snap.TFltV()
-        node_est_times = [] # snap.TFltV()
-        start_est = time()
+    def test_all_distance_sketch_node_ids(self, network, node_ids, k):
+        # Create the sketch for the given k
+        print(f'[{stopwatch()}] Creating k={k} sketch...')
+        self.test_tracker.start()
+        graph_sketch = GraphSketch(network, k)
+        graph_sketch.calculate_graph_sketch()
+        sketch_time, sketch_mem, sketch_mem_peak = self.test_tracker.track()
+        print(f'[{stopwatch()}] Finished creating k={k} sketch.')
 
+        # Perform estimates on the sketch
+        print(f'[{stopwatch()}] Estimating for N={node_ids.Len()} with k={k} sketch...')
+        self.test_tracker.start()
+        estimates = []  # snap.TFltV()
         for node_id in node_ids:
-            start_node_est = time()
-            tc_estimates.append(
-                summary.cardinality_estimation_node_id(node_id))
-            node_est_times.append(elapsed_time(start_node_est))
+            estimates.append(graph_sketch.cardinality_estimation_node_id(node_id))
+        est_time, est_mem, est_mem_peak = self.test_tracker.track()
+        print(f'[{stopwatch()}] Finished estimating for N={node_ids.Len()} with k={k} sketch.')
 
-        total_estimation_time = elapsed_time(start_est)
-        tc_data[f'{label_aux} estimate'] = tc_estimates
-        tc_data[f'{label_aux} estimate time'] = node_est_times
+        k_label = f' k={k}'
+        self.results[self.ResultsLabels.SKETCH_CREATION_TIME+k_label].append(sketch_time)
+        self.results[self.ResultsLabels.SKETCH_CREATION_MEM+k_label].append(sketch_mem)
+        self.results[self.ResultsLabels.SKETCH_CREATION_MEM_PEAK+k_label].append(sketch_mem_peak)
+        self.results[self.ResultsLabels.SKETCH_EST_TIME+k_label].append(est_time)
+        self.results[self.ResultsLabels.SKETCH_EST_MEM+k_label].append(est_mem)
+        self.results[self.ResultsLabels.SKETCH_EST_MEM_PEAK+k_label].append(est_mem_peak)
 
-        general_data.setdefault(f'{label_aux} merge time', []).append(merge_time) # snap.TFltV()
-        general_data.setdefault(
-            f'{label_aux} total estimation time N={N}', []).append(total_estimation_time) # snap.TFltV()
+        return estimates
 
+    def full_test_network(self, network) -> pd.DataFrame:
+        node_results = pd.DataFrame()
+        node_ids = snap.TIntV()
 
-def full_test_memory_network(network, k_values: list, seed: int, N: int, memory_results: dict) -> pd.DataFrame:
-    node_results = pd.DataFrame()
-    node_ids = snap.TIntV()
-    
-    rnd = snap.TRnd(seed)
-    # Omit rnd.Randomize() line to get the same return values for different 
-    # program executions 
-    # rnd.Randomize()
-    for i in range(N):
-        node_ids.append(network.GetRndNId(rnd))
-    node_results['Node ids'] = node_ids
+        rnd = snap.TRnd(self.seed)
+        # Omit rnd.Randomize() line to get the same return values for different
+        # program executions
+        # rnd.Randomize()
+        for i in range(self.N):
+            node_ids.append(network.GetRndNId(rnd))
+        node_results['Node ids'] = node_ids
 
-    print(f'[{stopwatch()}] Calculating TC for N={node_ids.Len()} nodes.')
-    before_tc, _ = tracemalloc.get_traced_memory()
-    tracemalloc.reset_peak()
-    tc_values = snap.TIntV()
-    for node_id in node_ids:
-        bfs_tree = network.GetBfsTree(node_id, True, False)
-        tc_values.append(bfs_tree.GetNodes())
-    node_results['TC'] = tc_values
-    after_tc, tc_peak = tracemalloc.get_traced_memory()
-    memory_results.setdefault(f"TC size", []).append(after_tc-before_tc)
-    memory_results.setdefault(f"TC peak", []).append(tc_peak-before_tc)
-    
-    # Test sketch
-    for k in k_values:
-        print(f'[{stopwatch()}] Testing sketch for k={k}.')
-        sketch_size, sketch_peak, total_estimation_size, estimation_peak, estimates = test_memory_all_distance_sketch_node_ids(network, node_ids, k)
-        node_results[f"ADS k={k}"] = estimates
-        memory_results.setdefault(f"ADS k={k} size", []).append(sketch_size)
-        memory_results.setdefault(f"ADS k={k} peak", []).append(sketch_peak)
-        memory_results.setdefault(f"ADS k={k} total estimation size", []).append(total_estimation_size)
-        memory_results.setdefault(f"ADS k={k} total estimation peak", []).append(estimation_peak)
-    
-    # Test summary
-    # full_test_network_summary(network, node_ids, general_data, tc_data)
+        print(f'[{stopwatch()}] Calculating TC for N={node_ids.Len()} nodes...')
+        tc_values = snap.TIntV()
 
-    # Test estimation function
+        self.test_tracker.start()
+        for node_id in node_ids:
+            bfs_tree = network.GetBfsTree(node_id, True, False)
+            tc_values.append(bfs_tree.GetNodes())
+        tc_time, tc_mem, tc_mem_peak = self.test_tracker.track()
 
-    return node_results
+        print(f'[{stopwatch()}] Finished calculating TC for N={node_ids.Len()} nodes.')
+        node_results['TC'] = tc_values
+        self.results[self.ResultsLabels.TC_TIME].append(tc_time)
+        self.results[self.ResultsLabels.TC_MEM].append(tc_mem)
+        self.results[self.ResultsLabels.TC_MEM_PEAK].append(tc_mem_peak)
+
+        for k in self.k_values:
+            estimates = self.test_all_distance_sketch_node_ids(network, node_ids, k)
+            node_results[f'Sketch k={k}'] = estimates
+
+        # full_test_network_summary(network, node_ids, general_data, tc_data)
+        return node_results
 
 
-def full_test_memory(seed, N, k_values, files_sizes, root):
-    test_timestamp = strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
-    print(f'+++++ Starting memory tests. +++++')
-    memory_results = {}
-    memory_results['Network'] = []
-    memory_results['#Nodes'] = []
-    memory_results['#Edges'] = []
-    memory_results['Memory'] = []
-    memory_results['Loading Peak'] = []
+    def start_full_test(self):
+        # Get the data files and their sizes in the data directory
+        files_sizes = {}
+        for root, dirs, files in os.walk("data"):
+            for file in files:
+                if file.endswith("wiki-Vote.txt"):
+                    path = os.path.join(root, file)
+                    size = os.stat(path).st_size
+                    files_sizes[file] = size
 
-    tracemalloc.start()
-    for file, size in sorted(files_sizes.items(), key=lambda item: item[1]):
-        filepath = os.path.join(root, file)
+        for file, size in sorted(files_sizes.items(), key=lambda item: item[1]):
+            network = self.load_network(root, file)
 
-        before_loading, _ = tracemalloc.get_traced_memory()
-        tracemalloc.reset_peak()
-        print(f"[{stopwatch()}] Loading {filepath}...")
-        network = load_data.load_unlabeled_edge_file(filepath)
-        after_loading , loading_peak = tracemalloc.get_traced_memory()
-        no_nodes = network.GetNodes()
-        no_edges = network.GetEdges()
-        print(f"[{stopwatch()}] Nodes: {no_nodes}, Edges: {no_edges}")
-        
-        memory_results['Network'].append(file)
-        memory_results['#Nodes'].append(no_nodes)
-        memory_results['#Edges'].append(no_edges)
-        memory_results['Memory'].append(after_loading-before_loading)
-        memory_results['Loading Peak'].append(loading_peak-before_loading)
+            node_results_df = self.full_test_network(network)
+            node_results_filename = f"results/{self.test_timestamp}_{file}_node_results_N={self.N}.csv"
+            node_results_df.to_csv(node_results_filename, index=False)
 
-        node_results = full_test_memory_network(network, k_values, seed, N, memory_results)
-        node_results.to_csv(f"results/{test_timestamp}_memory_node_results_N={N}.csv", index=False)
-        
-    
-    network_results_df = pd.DataFrame.from_dict(memory_results)
-    network_results_df.to_csv(f"results/{test_timestamp}_memory_results_N={N}.csv", index=False)
-
-
-def full_test_time_network(network, k_values: list, seed: int, N: int, time_results: dict) -> pd.DataFrame:
-    node_results = pd.DataFrame()
-    node_ids = snap.TIntV()
-    
-    rnd = snap.TRnd(seed)
-    # Omit rnd.Randomize() line to get the same return values for different 
-    # program executions 
-    # rnd.Randomize()
-    for i in range(N):
-        node_ids.append(network.GetRndNId(rnd))
-    node_results['Node ids'] = node_ids
-
-    print(f'[{stopwatch()}] Calculating TC for N={node_ids.Len()} nodes.')
-    tc_values = snap.TIntV()
-    start_tc = time()
-    for node_id in node_ids:
-        bfs_tree = network.GetBfsTree(node_id, True, False)
-        tc_values.append(bfs_tree.GetNodes())
-    total_tc_time = elapsed_time(start_tc)
-    node_results['TC'] = tc_values
-    time_results.setdefault(f"TC time", []).append(total_tc_time)
-    
-    for k in k_values:
-        print(f'[{stopwatch()}] Testing sketch for k={k}.')
-        sketch_construction_time, total_estimation_time, estimates = \
-            test_time_all_distance_sketch_node_ids(network, node_ids, k)
-        node_results[f"ADS k={k}"] = estimates
-        time_results.setdefault(f"ADS k={k} construction time", []).append(
-            sketch_construction_time)
-        time_results.setdefault(f"ADS k={k} total estimation time", []).append(
-            total_estimation_time)
-    
-    # full_test_network_summary(network, node_ids, general_data, tc_data)
-    return node_results
-
-
-def full_test_time(seed, N, k_values, files_sizes, root):
-    test_timestamp = strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
-    print(f'+++++ Starting time tests. +++++')
-    time_results = {}
-    time_results['Network'] = []
-    time_results['#Nodes'] = []
-    time_results['#Edges'] = []
-    time_results['Loading time'] = []
-
-    for file, size in sorted(files_sizes.items(), key=lambda item: item[1]):
-        filepath = os.path.join(root, file)
-
-        start_time = time()
-        print(f"[{stopwatch()}] Loading {filepath}...")
-        network = load_data.load_unlabeled_edge_file(filepath)
-        loading_time = elapsed_time(start_time)
-        no_nodes = network.GetNodes()
-        no_edges = network.GetEdges()
-        print(f"[{stopwatch()}] Loaded in: {elapsed_time_str(start_time)}")
-        print(f"[{stopwatch()}] Nodes: {no_nodes}, Edges: {no_edges}")
-        
-        time_results['Network'].append(file)
-        time_results['Loading time'].append(loading_time)
-        time_results['#Nodes'].append(no_nodes)
-        time_results['#Edges'].append(no_edges)
-
-        node_results = full_test_time_network(network, k_values, seed, N, time_results)
-        node_results.to_csv(f"results/{test_timestamp}_time_node_results_N={N}.csv", index=False)
-    
-    network_results_df = pd.DataFrame.from_dict(time_results)
-    network_results_df.to_csv(f"results/{test_timestamp}_time_results_N={N}.csv", index=False)
-
-
-def full_test(seed, N, k_values=[5, 10, 50, 100]):
-    # Get the data files and their sizes in the data directory 
-    files_sizes = {}
-    for root, dirs, files in os.walk("data"):
-        for file in files:
-            if file.endswith("wiki-Vote.txt"):
-                path = os.path.join(root, file)
-                size = os.stat(path).st_size
-                files_sizes[file] = size
-    
-    # We need time and memory tests done separately because 
-    full_test_time(seed, N, k_values, files_sizes, root)
-    full_test_memory(seed, N, k_values, files_sizes, root)
-
-    
-
+        # if not tracking memory, then remove memory columns
+        results_df = pd.DataFrame.from_dict(self.results)
+        if not self.track_mem:
+            results_df = results_df[results_df.columns.drop(list(results_df.filter(regex='memory')))]
+            results_filename = f"results/{self.test_timestamp}_results_N={self.N}.csv"
+        else:
+            results_filename = f"results/{self.test_timestamp}_memory_results_N={self.N}.csv"
+        results_df.to_csv(results_filename, index=False)
 
 
 # Used previously to test gmark and will be needed in the future
@@ -234,7 +177,7 @@ def full_test(seed, N, k_values=[5, 10, 50, 100]):
     # 'shop_100k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=100000),
     # 'shop_200k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=200000),
     # 'shop_250k': partial(load_data.make_gmark_network, load_data.GMarkUseCase.shop, size=250000)
-# }    
+# }
 # for network_name, load_network_method in network_names_methods.items():
 #     network = load_network_method()
 #     general_data.setdefault('Network', snap.TStrV()).append(network_name)
