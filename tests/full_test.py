@@ -1,4 +1,5 @@
 from enum import Enum
+from math import inf
 from time import time, strftime, gmtime
 from functools import partial
 import os
@@ -16,6 +17,7 @@ from .test_util import TestTracker, elapsed_time, elapsed_time_str, stopwatch, c
 
 class FullTest:
     class ResultsLabels(str, Enum):
+        # Network labels
         NETWORK = 'Network'
         N_NODES = 'No. nodes'
         N_EDGES = 'No. edges'
@@ -24,15 +26,19 @@ class FullTest:
         LOAD_TIME = 'Loading time'
         LOAD_MEM = 'Loading memory'
         LOAD_MEM_PEAK = 'Loading memory peak'
+        # TC labels
         TC_TIME = "TC time"
         TC_MEM = "TC memory"
         TC_MEM_PEAK = "TC memory peak"
+        # Sketch labels
         SKETCH_CREATION_TIME = "Sketch creation time"
         SKETCH_CREATION_MEM = "Sketch creation memory"
         SKETCH_CREATION_MEM_PEAK = "Sketch creation memory peak"
         SKETCH_EST_TIME = "Sketch estimation time"
         SKETCH_EST_MEM = "Sketch estimation memory"
         SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
+        # Estimation function labels
+        # * there aren't any really, it's instant
 
         def __str__(self) -> str:
             return str.__str__(self)
@@ -44,11 +50,16 @@ class FullTest:
         self.track_mem = track_mem
         self.results = {}
         for label in self.ResultsLabels:
-            if label.startswith("Sketch"):
-                for k in k_values:
-                    self.results[label + f' k={k}'] = []
+            if label == self.ResultsLabels.NETWORK:
+                self.results[label] = snap.TStrV()
+            elif label.__contains__('time') or label.__contains__('memory'):
+                if label.startswith('Sketch'):
+                    for k in k_values:
+                        self.results[label + f' k={k}'] = snap.TFltV()
+                else:
+                    self.results[label] = snap.TFltV()
             else:
-                self.results[label] = []
+                self.results[label] = snap.TIntV()
         self.test_tracker = TestTracker(track_mem)
         self.test_timestamp = current_date_time_str()
 
@@ -77,7 +88,22 @@ class FullTest:
 
         return network
 
-    def test_all_distance_sketch_node_ids(self, network, node_ids, k):
+    def test_graph_merge_summary(self, network, node_ids):
+        pass
+
+    def test_estimation_function(self, network):
+        print(f'[{stopwatch()}] Estimating using the estimation function...')
+        single_source_est = estimation_function(network, s=1)
+        total_est = estimation_function(network, s=self.N)
+        
+        estimates = snap.TFltV()
+        for i in range(self.N):
+            estimates.append(single_source_est)
+        estimates.append(total_est)
+        print(f'[{stopwatch()}] Finished estimating using the estimation function.')
+        return estimates
+
+    def test_all_distance_sketch(self, network, node_ids, k):
         # Create the sketch for the given k
         print(f'[{stopwatch()}] Creating k={k} sketch...')
         self.test_tracker.start()
@@ -89,9 +115,10 @@ class FullTest:
         # Perform estimates on the sketch
         print(f'[{stopwatch()}] Estimating for N={node_ids.Len()} with k={k} sketch...')
         self.test_tracker.start()
-        estimates = []  # snap.TFltV()
+        estimates = snap.TFltV()
         for node_id in node_ids:
             estimates.append(graph_sketch.cardinality_estimation_node_id(node_id))
+        estimates.append(sum(estimates))
         est_time, est_mem, est_mem_peak = self.test_tracker.track()
         print(f'[{stopwatch()}] Finished estimating for N={node_ids.Len()} with k={k} sketch.')
 
@@ -115,15 +142,17 @@ class FullTest:
         # rnd.Randomize()
         for i in range(self.N):
             node_ids.append(network.GetRndNId(rnd))
+        node_ids.append(-1) # placeholder for total row
         node_results['Node ids'] = node_ids
+        node_ids.pop(node_ids.Len()-1)
 
         print(f'[{stopwatch()}] Calculating TC for N={node_ids.Len()} nodes...')
         tc_values = snap.TIntV()
-
         self.test_tracker.start()
         for node_id in node_ids:
             bfs_tree = network.GetBfsTree(node_id, True, False)
             tc_values.append(bfs_tree.GetNodes())
+        tc_values.append(sum(tc_values))
         tc_time, tc_mem, tc_mem_peak = self.test_tracker.track()
 
         print(f'[{stopwatch()}] Finished calculating TC for N={node_ids.Len()} nodes.')
@@ -133,8 +162,11 @@ class FullTest:
         self.results[self.ResultsLabels.TC_MEM_PEAK].append(tc_mem_peak)
 
         for k in self.k_values:
-            estimates = self.test_all_distance_sketch_node_ids(network, node_ids, k)
-            node_results[f'Sketch k={k}'] = estimates
+            sketch_estimates = self.test_all_distance_sketch(network, node_ids, k)
+            node_results[f'Sketch k={k}'] = sketch_estimates
+
+        func_estimates = self.test_estimation_function(network)
+        node_results[f'Function'] = func_estimates
 
         # full_test_network_summary(network, node_ids, general_data, tc_data)
         return node_results
