@@ -37,13 +37,28 @@ class FullTest:
         SKETCH_EST_TIME = "Sketch estimation time"
         SKETCH_EST_MEM = "Sketch estimation memory"
         SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
+        # Summary labels
+        SUMMARY_N_NODES = 'Summary no. nodes'
+        SUMMARY_N_EDGES = 'Summary no. edges'
+        SUMMARY_EVAL_TIME = "Summary evaluation time"
+        SUMMARY_EVAL_MEM = "Summary evaluation memory"
+        SUMMARY_EVAL_MEM_PEAK = "Summary evaluation memory peak"
+        SUMMARY_MERGE_TIME = "Summary merge time"
+        SUMMARY_MERGE_MEM = "Summary merge memory"
+        SUMMARY_MERGE_MEM_PEAK = "Summary merge memory peak"
+        SUMMARY_EST_TIME = "Summary estimation time"
+        SUMMARY_EST_MEM = "Summary estimation memory"
+        SUMMARY_EST_MEM_PEAK = "Summary estimation memory peak"
         # Estimation function labels
         # * there aren't any really, it's instant
 
         def __str__(self) -> str:
             return str.__str__(self)
 
-    def __init__(self, seed=42, N=1000, k_values=[5, 10, 50, 100], track_mem=False):
+    def __init__(self, test_sketch=True, test_summary=True, test_func=True, seed=42, N=1000, k_values=[5, 10, 50, 100], track_mem=False):
+        self.test_sketch = test_sketch
+        self.test_summary = test_summary
+        self.test_func = test_func
         self.seed = seed
         self.N = N
         self.k_values = k_values
@@ -52,14 +67,19 @@ class FullTest:
         for label in self.ResultsLabels:
             if label == self.ResultsLabels.NETWORK:
                 self.results[label] = snap.TStrV()
-            elif label.__contains__('time') or label.__contains__('memory'):
-                if label.startswith('Sketch'):
+            elif label.startswith('Sketch'):
+                if self.test_sketch:
                     for k in k_values:
                         self.results[label + f' k={k}'] = snap.TFltV()
-                else:
-                    self.results[label] = snap.TFltV()
+            elif label.startswith('Summary'):
+                if self.test_summary:
+                    if label.__contains__('evaluation') or label.__contains__('estimation'):
+                        self.results[label] = snap.TFltV()
+                    else:
+                        self.results[label+' is_target_merge=True'] = snap.TFltV()
+                        self.results[label+' is_target_merge=False'] = snap.TFltV()
             else:
-                self.results[label] = snap.TIntV()
+                self.results[label] = snap.TFltV()
         self.test_tracker = TestTracker(track_mem)
         self.test_timestamp = current_date_time_str()
 
@@ -88,9 +108,6 @@ class FullTest:
 
         return network
 
-    def test_graph_merge_summary(self, network, node_ids):
-        pass
-
     def test_estimation_function(self, network):
         print(f'[{stopwatch()}] Estimating using the estimation function...')
         single_source_est = estimation_function(network, s=1)
@@ -103,7 +120,19 @@ class FullTest:
         print(f'[{stopwatch()}] Finished estimating using the estimation function.')
         return estimates
 
-    def test_all_distance_sketch(self, network, node_ids, k):
+    def test_graph_merge_summary(self, network, node_ids):
+        merge_types = [False, True]
+        
+        # Create the summary
+        print(f'[{stopwatch()}] Creating evaluation summary...')
+        self.test_tracker.start()
+        summary = GraphMergeSummary(network)
+        summary.build_evalutation_network()
+        summary_time, summary_mem, summary_mem_peak = self.test_tracker.track()
+        print(f'[{stopwatch()}] Finished creating evaluation summary.')
+
+
+    def test_all_distance_sketch(self, network, k, node_ids):
         # Create the sketch for the given k
         print(f'[{stopwatch()}] Creating k={k} sketch...')
         self.test_tracker.start()
@@ -161,14 +190,18 @@ class FullTest:
         self.results[self.ResultsLabels.TC_MEM].append(tc_mem)
         self.results[self.ResultsLabels.TC_MEM_PEAK].append(tc_mem_peak)
 
-        for k in self.k_values:
-            sketch_estimates = self.test_all_distance_sketch(network, node_ids, k)
-            node_results[f'Sketch k={k}'] = sketch_estimates
+        if self.test_sketch:
+            for k in self.k_values:
+                sketch_estimates = self.test_all_distance_sketch(network, k, node_ids)
+                node_results[f'Sketch k={k}'] = sketch_estimates
+        
+        if self.test_summary:
+            pass
+        
+        if self.test_func:
+            func_estimates = self.test_estimation_function(network)
+            node_results[f'Function'] = func_estimates
 
-        func_estimates = self.test_estimation_function(network)
-        node_results[f'Function'] = func_estimates
-
-        # full_test_network_summary(network, node_ids, general_data, tc_data)
         return node_results
 
 
