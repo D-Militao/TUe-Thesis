@@ -54,7 +54,7 @@ def edge_file_to_network(filename, ordered_attributes, tab_separated=False, has_
         with open(filename,'r') as file:
             for line in file:
                 # check if the current line starts with "#"
-                if line.startswith("#") or line.startswith('%'):
+                if line.startswith("#"):
                     continue
                 else:
                     if line.count('\t') > 0:
