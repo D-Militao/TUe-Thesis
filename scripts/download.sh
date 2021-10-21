@@ -30,6 +30,7 @@ then
     echo "++++ Skipping download.tsv.wikipedia_link_en.tar.bz2 because out.wikipedia_link_en.txt already exists."
 else
     tar -xvjf download.tsv.wikipedia_link_en.tar.bz2 wikipedia_link_en/out.wikipedia_link_en --strip-components 1
+    sed -i 's/%/#/g' out.wikipedia_link_en
     mv out.wikipedia_link_en out.wikipedia_link_en.txt
 fi
 
@@ -38,5 +39,6 @@ then
     echo "++++ Skipping download.tsv.friendster.tar.bz2 because out.friendster.txt already exists."
 else
     tar -xvjf download.tsv.friendster.tar.bz2 friendster/out.friendster --strip-components 1
-    mv friendster/out.friendster ./out.friendster.txt
+    sed -i 's/%/#/g' out.friendster
+    mv out.friendster out.friendster.txt
 fi
