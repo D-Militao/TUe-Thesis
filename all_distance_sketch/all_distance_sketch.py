@@ -11,7 +11,7 @@ from snap_util import snap_util
 
 
 class GraphSketch:
-    def __init__(self, graph, k):
+    def __init__(self, graph, k, seed=None):
         self.graph = graph
         if isinstance(graph, snap.TUNGraph):
             self.tranposed_graph = graph
@@ -22,7 +22,8 @@ class GraphSketch:
         self.rankings = snap.TIntFltH()
         self.node_sketches = snap.TIntIntPrVH()
 
-        random.seed(42)
+        if not seed == None:
+            random.seed(seed)
         for NI in graph.Nodes():
             node_id = NI.GetId()
             self.node_ids.append(node_id)
@@ -33,7 +34,6 @@ class GraphSketch:
 
     def calculate_graph_sketch(self):
         for rankee_node_id, rankee_rank in sorted(self.rankings.items(), key=lambda item: item[1]):
-            print(rankee_rank)
             queue = snap.TIntV()
             queue.append(rankee_node_id)
             distances = snap.TIntH()
@@ -61,8 +61,8 @@ class GraphSketch:
                     if k_smallest_dist > parent_distance:
                         insert = True
                     elif k_smallest_dist == parent_distance and (sketch_len - self.k - 1) >= 0:
-                        k_min_one_smallest_dist = sketch[sketch_len -
-                                                        self.k - 1].GetVal1()
+                        k_min_one_smallest_dist = (
+                            sketch[sketch_len - self.k - 1].GetVal1())
                         if sketch_len == self.k:
                             insert = True
                         elif k_min_one_smallest_dist > parent_distance:
