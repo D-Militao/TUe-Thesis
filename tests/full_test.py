@@ -83,12 +83,12 @@ class FullTest:
                         self.results[label + f' k={k}'] = snap.TFltV()
             elif label.startswith('Summary'):
                 if self.test_summary:
-                    # self.results[label] = snap.TFltV()
-                    if label.__contains__('evaluation'):
-                        self.results[label] = snap.TFltV()
-                    else:
-                        self.results[label+' is_target_merge=True'] = snap.TFltV()
-                        self.results[label+' is_target_merge=False'] = snap.TFltV()
+                    self.results[label] = snap.TFltV()
+                    # if label.__contains__('evaluation'):
+                    #     self.results[label] = snap.TFltV()
+                    # else:
+                    #     self.results[label+' is_target_merge=True'] = snap.TFltV()
+                    #     self.results[label+' is_target_merge=False'] = snap.TFltV()
             else:
                 self.results[label] = snap.TFltV()
 
@@ -131,7 +131,7 @@ class FullTest:
         return estimates
 
     def test_graph_merge_summary(self, network, node_ids) -> dict:
-        merge_types = [False, True]
+        # merge_types = [False, True]
         
         # Create the summary
         test_print(f"Creating evaluation summary...")
@@ -169,50 +169,35 @@ class FullTest:
         # return estimates
 
         # Loop below is for using the merge graph
-        merge_types_estimates = {}
-        for merge_type in merge_types:
-            test_print(f"Creating is_target_merge={merge_type} summary...")
-            self.test_tracker.start()
-            summary.build_merge_network(is_target_merge=merge_type)
-            merge_time, merge_mem, merge_mem_peak = (self.test_tracker.track())
-            summary_n_nodes = summary.merge_network.GetNodes()
-            summary_n_edges = summary.merge_network.GetEdges()
-            test_print(f"Finished creating is_target_merge={merge_type} summary.")
+        test_print(f"Creating merge summary...")
+        self.test_tracker.start()
+        summary.build_merge_network()
+        merge_time, merge_mem, merge_mem_peak = (self.test_tracker.track())
+        summary_n_nodes = summary.merge_network.GetNodes()
+        summary_n_edges = summary.merge_network.GetEdges()
+        test_print(f"Finished creating merge summary.")
 
-            # Perform estimates on summary
-            test_print(f"Estimating for N={self.N} on is_target_merge={merge_type} summary...")
-            self.test_tracker.start()
-            estimates = snap.TFltV()
-            for node_id in node_ids:
-                estimates.append(summary.cardinality_estimation_node_id(node_id))
-            estimates.append(sum(estimates))
-            est_time, est_mem, est_mem_peak = self.test_tracker.track()
-            test_print(f"Finished estimating for N={self.N} on is_target_merge={merge_type} summary.")
+        # Perform estimates on summary
+        test_print(f"Estimating for N={self.N} on merge summary...")
+        self.test_tracker.start()
+        estimates = snap.TFltV()
+        for node_id in node_ids:
+            estimates.append(summary.cardinality_estimation_node_id(node_id))
+        estimates.append(sum(estimates))
+        est_time, est_mem, est_mem_peak = self.test_tracker.track()
+        test_print(f"Finished estimating for N={self.N} on merge summary.")
 
-            # Add data to results
-            merge_label = f' is_target_merge={merge_type}'
-            merge_types_estimates[merge_label] = estimates
-            self.results[self.ResultsCol.SUMMARY_N_NODES+merge_label].append(
-                    summary_n_nodes)
-            self.results[self.ResultsCol.SUMMARY_N_EDGES+merge_label].append(
-                    summary_n_edges)
-            self.results[
-                self.ResultsCol.SUMMARY_MERGE_TIME+merge_label].append(
-                    merge_time)
-            self.results[self.ResultsCol.SUMMARY_MERGE_MEM+merge_label].append(
-                    merge_mem)
-            self.results[
-                self.ResultsCol.SUMMARY_MERGE_MEM_PEAK+merge_label].append(
-                    merge_mem_peak)
-            self.results[self.ResultsCol.SUMMARY_EST_TIME+merge_label].append(
-                    est_time)
-            self.results[self.ResultsCol.SUMMARY_EST_MEM+merge_label].append(
-                    est_mem)
-            self.results[
-                self.ResultsCol.SUMMARY_EST_MEM_PEAK+merge_label].append(
-                    est_mem_peak)
+        # Add data to results
+        self.results[self.ResultsCol.SUMMARY_N_NODES].append(summary_n_nodes)
+        self.results[self.ResultsCol.SUMMARY_N_EDGES].append(summary_n_edges)
+        self.results[self.ResultsCol.SUMMARY_MERGE_TIME].append(merge_time)
+        self.results[self.ResultsCol.SUMMARY_MERGE_MEM].append(merge_mem)
+        self.results[self.ResultsCol.SUMMARY_MERGE_MEM_PEAK].append(merge_mem_peak)
+        self.results[self.ResultsCol.SUMMARY_EST_TIME].append(est_time)
+        self.results[self.ResultsCol.SUMMARY_EST_MEM].append(est_mem)
+        self.results[self.ResultsCol.SUMMARY_EST_MEM_PEAK].append(est_mem_peak)
         
-        return merge_types_estimates
+        return estimates
 
 
     def test_all_distance_sketch(self, network, k, node_ids) -> snap.TFltV:
@@ -280,11 +265,8 @@ class FullTest:
                 node_results[f'Sketch k={k}'] = sketch_estimates
         
         if self.test_summary:
-            # summary_estimates = self.test_graph_merge_summary(network, node_ids)
-            # node_results[f'Summary'] = summary_estimates
-            merge_types_estimates = self.test_graph_merge_summary(network, node_ids)
-            for merge_label, estimates in merge_types_estimates.items():
-                node_results[f'Summary'+merge_label] = estimates
+            summary_estimates = self.test_graph_merge_summary(network, node_ids)
+            node_results[f'Summary'] = summary_estimates
         
         if self.test_func:
             func_estimates = self.test_estimation_function(network)
