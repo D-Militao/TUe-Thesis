@@ -7,32 +7,23 @@ try:
 except ImportError:
     pass
 from time import time, strftime, gmtime
-import tracemalloc
 
 from .context import __start_time__
 
 class TestTracker:
     def __init__(self, track_memory):
-        if track_memory:
-            tracemalloc.start()
         self.start()
         
     def start(self):
         """Starts the tracker."""
-        self.mem, _ = tracemalloc.get_traced_memory()
         self.time = time()
-        tracemalloc.reset_peak()
     
     def track(self):
         """Returns time elapsed, memory increase and memory increase peak 
         since last time start was called.
         """
         elapsed_time = time() - self.time
-        current_mem, current_peak_mem = tracemalloc.get_traced_memory()
-        mem_increase = current_mem - self.mem
-        mem_increase_peak = current_peak_mem - self.mem
-        
-        return elapsed_time, mem_increase, mem_increase_peak
+        return elapsed_time, -1, -1
 
 
 def stopwatch() -> str:
