@@ -131,4 +131,5 @@ dmypy.json
 # Project specific
 data/
 tmp/
-results/
+results/*
+!results/.gitkeep
