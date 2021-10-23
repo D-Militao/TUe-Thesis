@@ -4,7 +4,6 @@ https://snap.stanford.edu/data/twitter_combined.txt.gz
 https://snap.stanford.edu/data/gplus_combined.txt.gz
 https://snap.stanford.edu/data/soc-pokec-relationships.txt.gz
 https://snap.stanford.edu/data/soc-LiveJournal1.txt.gz
-http://konect.cc/files/download.tsv.friendster.tar.bz2
 
 https://snap.stanford.edu/data/wiki-topcats.txt.gz
 
@@ -12,6 +11,5 @@ https://snap.stanford.edu/data/web-NotreDame.txt.gz
 https://snap.stanford.edu/data/web-Stanford.txt.gz
 https://snap.stanford.edu/data/web-Google.txt.gz
 https://snap.stanford.edu/data/web-BerkStan.txt.gz
-http://konect.cc/files/download.tsv.wikipedia_link_en.tar.bz2
 
 https://snap.stanford.edu/data/amazon0601.txt.gz
