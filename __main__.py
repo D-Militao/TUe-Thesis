@@ -2,7 +2,6 @@ from enum import Enum
 import tracemalloc
 import pickle
 
-from guppy import hpy
 import snap 
 
 from tests.full_test import FullTest

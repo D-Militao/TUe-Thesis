@@ -7,12 +7,12 @@ import snap
 def estimation_function(network, s=None, t=None):
     n = network.GetNodes()
     m = network.GetEdges()
-    if s == None:
+    if s is None:
         s = n
-    if t == None:
+    if t is None:
         t = n
 
-    saturation = (-(m-n)/n)
+    saturation = (-(m - n) / n)
     estimation = s * t * (1 - math.exp(saturation))
     return estimation
 
@@ -38,8 +38,8 @@ def size_transitive_closure_node_ids(network, node_ids):
 
 def estimation_function_test_paper(seed, N=100):
     df = pd.DataFrame(columns=['Graph Type', 'No. roots', 'No. nodes',
-                      'No. Edges', 'Max degree', 'Zero degree', 'TC Size', 
-                      'Estimate'])
+                               'No. Edges', 'Max degree', 'Zero degree', 'TC Size',
+                               'Estimate'])
     sizes = [(100, 200), (1000, 2000), (10000, 20000),
              (100000, 200000), (1000000, 2000000)]
     rnd = snap.TRnd(seed)
@@ -55,7 +55,7 @@ def estimation_function_test_paper(seed, N=100):
         #     snap.TNEANet, n_nodes, n_edges, True, rnd)
         # result_sf = estimation_function_test(network_sf, seed, N)
         # df = df.append(result_sf, ignore_index=True)
-        
+
     return df
 
 
@@ -69,13 +69,13 @@ def estimation_function_test(network, seed, N=100):
     rnd = snap.TRnd(seed)
     while len(node_ids) < N:
         node_ids.add(network.GetRndNId(rnd))
-    
+
     size_tc = size_transitive_closure_node_ids(network, node_ids)
     estimate = estimation_function(network, s=N)
 
-    result = {'Graph Type': 'Random', 'No. roots': N, 
-                'No. nodes': n_nodes, 'No. Edges': n_edges,
-                'Max degree': max_degree, 'Zero degree': n_z_nodes, 
-                'TC Size': size_tc, 'Estimate': estimate}
-    
+    result = {'Graph Type': 'Random', 'No. roots': N,
+              'No. nodes': n_nodes, 'No. Edges': n_edges,
+              'Max degree': max_degree, 'Zero degree': n_z_nodes,
+              'TC Size': size_tc, 'Estimate': estimate}
+
     return result

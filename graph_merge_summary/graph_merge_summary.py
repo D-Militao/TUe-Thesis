@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from .constants import Constants
 from snap_util import snap_util
 
+
 @dataclass
 class MetaNode:
     """Class for keeping data on an aggregation of nodes."""
@@ -43,7 +44,7 @@ class GraphMergeSummary:
         self.evaluation_network.AddFltAttrN(Constants.EDGE_WEIGHT)
         for label in self.edge_labels:
             self.evaluation_network.AddFltAttrN(
-                Constants.LABEL_PERCENTAGE+label)
+                Constants.LABEL_PERCENTAGE + label)
             self.evaluation_network.AddFltAttrN(Constants.LABEL_REACH + label)
         self.evaluation_network.AddIntAttrN(Constants.META_NODE_ID)
 
@@ -198,7 +199,7 @@ class GraphMergeSummary:
                 reach = reach + bfs_tree.GetEdges()
             self.evaluation_network.AddFltAttrDatN(
                 super_node.id, reach, Constants.LABEL_REACH + label)
-        
+
         total_reach = 0
         for NI in super_node.sub_network.Nodes():
             node_id = NI.GetId()
@@ -206,7 +207,7 @@ class GraphMergeSummary:
             bfs_tree = super_node.sub_network.GetBfsTree(node_id, True, False)
             total_reach = total_reach + bfs_tree.GetEdges()
         self.evaluation_network.AddFltAttrDatN(
-                super_node.id, total_reach, Constants.TOTAL_REACH)
+            super_node.id, total_reach, Constants.TOTAL_REACH)
 
     def compute_super_node_attributes(self, super_node):
         """Computes the attributes for the given super node and adds them to 
@@ -241,8 +242,8 @@ class GraphMergeSummary:
                     label = self.network.GetStrAttrDatE(
                         edge_id, Constants.EDGE_LABEL)
                     super_node_connection_counter[(dst_super_node_id, label)] = (
-                        super_node_connection_counter.setdefault(
-                            (dst_super_node_id, label), 0) + 1)
+                            super_node_connection_counter.setdefault(
+                                (dst_super_node_id, label), 0) + 1)
 
         # Add super edges and their attributes
         for (dst_super_node_id, label), edge_weight in super_node_connection_counter.items():
@@ -345,19 +346,19 @@ class GraphMergeSummary:
             node_weight = self.evaluation_network.GetFltAttrDatN(
                 NI, Constants.NODE_WEIGHT)
             node_attributes[Constants.NODE_WEIGHT] = (
-                node_attributes.setdefault(Constants.NODE_WEIGHT, 0) + node_weight)
+                    node_attributes.setdefault(Constants.NODE_WEIGHT, 0) + node_weight)
 
             # Sum the edge weight among all super nodes
             edge_weight = self.evaluation_network.GetFltAttrDatN(
                 NI, Constants.EDGE_WEIGHT)
             node_attributes[Constants.EDGE_WEIGHT] = (
-                node_attributes.setdefault(Constants.EDGE_WEIGHT, 0) + edge_weight)
+                    node_attributes.setdefault(Constants.EDGE_WEIGHT, 0) + edge_weight)
 
             # Sum the total reach among all super nodes
             total_reach = self.evaluation_network.GetFltAttrDatN(
                 NI, Constants.TOTAL_REACH)
             node_attributes[Constants.TOTAL_REACH] = (
-                node_attributes.setdefault(Constants.TOTAL_REACH, 0) + total_reach)
+                    node_attributes.setdefault(Constants.TOTAL_REACH, 0) + total_reach)
 
             # Now we handle the attributes that relate to each label
             for label in self.edge_labels:
@@ -365,15 +366,15 @@ class GraphMergeSummary:
                 label_reach = self.evaluation_network.GetFltAttrDatN(
                     NI, Constants.LABEL_REACH + label)
                 node_attributes[Constants.LABEL_REACH + label] = (
-                    node_attributes.setdefault(Constants.LABEL_REACH + label, 0) + label_reach)
+                        node_attributes.setdefault(Constants.LABEL_REACH + label, 0) + label_reach)
 
                 # For the percentage of inner edge labels we need to multiply by the total edges
                 # TODO: why store the percentage and not just the total?
                 label_percent = self.evaluation_network.GetFltAttrDatN(
                     NI, Constants.LABEL_PERCENTAGE + label)
                 node_attributes[Constants.LABEL_PERCENTAGE + label] = (
-                    node_attributes.setdefault(
-                        Constants.LABEL_PERCENTAGE + label, 0) 
+                        node_attributes.setdefault(
+                            Constants.LABEL_PERCENTAGE + label, 0)
                         + (edge_weight * label_percent))
 
             # TODO Hyper edge stuff check strategy
@@ -397,8 +398,8 @@ class GraphMergeSummary:
 
                 # Store hyper edge information
                 hyper_edges[(dst_hyper_node_id, edge_label)] = (
-                    hyper_edges.setdefault(
-                        (dst_hyper_node_id, edge_label), 0) + edge_weight)
+                        hyper_edges.setdefault(
+                            (dst_hyper_node_id, edge_label), 0) + edge_weight)
 
         # Now that we have sum of the (edge label percent * edge_weight) of
         # every super node, we divide it by the total_edge_weight (i.e. the
@@ -468,7 +469,7 @@ class GraphMergeSummary:
             super_node_id = NI.GetId()
             node_weight = self.evaluation_network.GetFltAttrDatN(
                 super_node_id, Constants.NODE_WEIGHT)
-            
+
             out_deg = NI.GetOutDeg()
             out_node_ids = snap.TIntV()
             for out_idx in range(out_deg):
@@ -480,7 +481,7 @@ class GraphMergeSummary:
             for in_idx in range(in_deg):
                 in_node_id = NI.GetInNId(in_idx)
                 in_node_ids.AddMerged(in_node_id)
-            
+
             in_list = []
             for in_node_id in in_node_ids:
                 in_list.append(in_node_id)
@@ -491,9 +492,8 @@ class GraphMergeSummary:
 
             super_node_groups.setdefault(
                 (frozenset(in_list), frozenset(out_list)), snap.TIntV()).append(
-                    super_node_id)
-            
-        
+                super_node_id)
+
         hyper_node_id_counter = itertools.count(start=1)
         hyper_nodes = {}
         for super_node_ids in super_node_groups.values():
@@ -503,7 +503,7 @@ class GraphMergeSummary:
                 self.evaluation_network, hyper_node_id, Constants.UNLABELED, super_node_ids)
 
             hyper_nodes[hyper_node_id] = hyper_node
-        
+
         # Add all hyper nodes to evaluation graph
         for hyper_node_id in hyper_nodes.keys():
             self.merge_network.AddNode(hyper_node_id)
@@ -523,18 +523,18 @@ class GraphMergeSummary:
         super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
         hyper_node_id = self.evaluation_network.GetIntAttrDatN(super_node_id, Constants.META_NODE_ID)
         hyper_bfs_tree = self.merge_network.GetBfsTree(hyper_node_id, True, False)
-        
+
         size_estimate = self.evaluation_network.GetFltAttrDatN(super_node_id, Constants.NODE_WEIGHT)
         for NI in hyper_bfs_tree.Nodes():
             bfs_node_id = NI.GetId()
             if bfs_node_id == hyper_node_id:
                 continue
             node_weight = self.merge_network.GetFltAttrDatN(
-                    bfs_node_id, Constants.NODE_WEIGHT)
+                bfs_node_id, Constants.NODE_WEIGHT)
             super_node_weight = self.merge_network.GetFltAttrDatN(
-                    bfs_node_id, Constants.SUPER_NODE_WEIGHT)
+                bfs_node_id, Constants.SUPER_NODE_WEIGHT)
             avg_node_weight = self.merge_network.GetFltAttrDatN(
-                    bfs_node_id, Constants.AVG_NODE_WEIGHT)
+                bfs_node_id, Constants.AVG_NODE_WEIGHT)
             size_estimate += node_weight
             # size_estimate += self.merge_network.GetFltAttrDatN(
             #     hyper_node_id, Constants.NODE_WEIGHT)
@@ -542,7 +542,7 @@ class GraphMergeSummary:
             #     size_estimate += self.merge_network.GetFltAttrDatN(
             #         hyper_node_id, Constants.LABEL_REACH+label)
             #     break
-            
+
         return size_estimate
 
     # def cardinality_estimation_unlabeled_node_id(self, node_id):
@@ -559,7 +559,7 @@ class GraphMergeSummary:
     #         # size_estimate += self.evaluation_network.GetFltAttrDatN(
     #         #         bfs_node_id, Constants.LABEL_REACH+Constants.UNLABELED)
     #     return size_estimate
-                
+
     def check_merge_graph(self):
         se_edge_weight = 0
         for EI in self.evaluation_graph.Edges():
