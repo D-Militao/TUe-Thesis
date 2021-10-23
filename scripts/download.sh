@@ -4,9 +4,10 @@
 PROJECT_DIR="/home/daniel/dev/TUe-Thesis"
 
 data_dir="$PROJECT_DIR/data/"
+scripts_dir="$PROJECT_DIR/scripts/"
 
-log_file="$PROJECT_DIR/script/download.log"
-links_file="$PROJECT_DIR/download_links.txt"
+log_file="$scripts_dir/download.log"
+links_file="$scripts_dir/download_links.txt"
 
 # Enter data directory
 cd $data_dir
@@ -25,20 +26,26 @@ yes n | gunzip -rk ./
 # Hard coded commands for the konect datasets in order to only extract the needed files
 # Add .txt extension to file so the data loading functions recognize it
 # TODO Find a better way to do this
-if [ -f out.wikipedia_link_en.txt ]
+if [ -f download.tsv.wikipedia_link_en.tar.bz2 ]
 then
-    echo "++++ Skipping download.tsv.wikipedia_link_en.tar.bz2 because out.wikipedia_link_en.txt already exists."
-else
-    tar -xvjf download.tsv.wikipedia_link_en.tar.bz2 wikipedia_link_en/out.wikipedia_link_en --strip-components 1
-    sed -i 's/%/#/g' out.wikipedia_link_en
-    mv out.wikipedia_link_en out.wikipedia_link_en.txt
+    if [ -f out.wikipedia_link_en.txt ]
+    then
+        echo "++++ Skipping download.tsv.wikipedia_link_en.tar.bz2 because out.wikipedia_link_en.txt already exists."
+    else
+        tar -xvjf download.tsv.wikipedia_link_en.tar.bz2 wikipedia_link_en/out.wikipedia_link_en --strip-components 1
+        sed -i 's/%/#/g' out.wikipedia_link_en
+        mv out.wikipedia_link_en out.wikipedia_link_en.txt
+    fi
 fi
 
-if [ -f out.friendster.txt ]
+if [ -f download.tsv.friendster.tar.bz2 ]
 then
-    echo "++++ Skipping download.tsv.friendster.tar.bz2 because out.friendster.txt already exists."
-else
-    tar -xvjf download.tsv.friendster.tar.bz2 friendster/out.friendster --strip-components 1
-    sed -i 's/%/#/g' out.friendster
-    mv out.friendster out.friendster.txt
+    if [ -f out.friendster.txt ]
+    then
+        echo "++++ Skipping download.tsv.friendster.tar.bz2 because out.friendster.txt already exists."
+    else
+        tar -xvjf download.tsv.friendster.tar.bz2 friendster/out.friendster --strip-components 1
+        sed -i 's/%/#/g' out.friendster
+        mv out.friendster out.friendster.txt
+    fi
 fi
