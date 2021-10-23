@@ -445,7 +445,6 @@ class GraphMergeSummary:
     def build_merge_network_labeled(self, is_target_merge=True):
         # We clear the merge network in case it has already been calculated
         # This allows us to recalculate the merge network with a different merge strategy
-        # TODO perhaps make 2 merge networks for each strategy
         self.merge_network.Clr()
         # Check if there is a way to reverse the edges in the network
         # if so then we can just reverse the graph depending on the strategy
@@ -462,7 +461,7 @@ class GraphMergeSummary:
             self.compute_hyper_node_edges_and_attributes(
                 hyper_node, is_target_merge)
 
-    def build_merge_network_unlabeled(self, is_target_merge=True):
+    def build_merge_network_unlabeled(self, is_target_merge=False):
         self.merge_network.Clr()
         super_node_groups = {}
         for NI in self.evaluation_network.Nodes():
@@ -514,13 +513,11 @@ class GraphMergeSummary:
             self.compute_hyper_node_edges_and_attributes(
                 hyper_node, is_target_merge)
 
-                
-
     def build_merge_network(self, is_target_merge=True):
         if self.is_labeled:
             self.build_merge_network_labeled(is_target_merge=is_target_merge)
         else:
-            self.build_merge_network_unlabeled(is_target_merge=is_target_merge)
+            self.build_merge_network_unlabeled(is_target_merge=False)
 
     def cardinality_estimation_node_id(self, node_id):
         super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
@@ -561,7 +558,6 @@ class GraphMergeSummary:
     #         size_estimate += node_weight / super_node_weight
     #         # size_estimate += self.evaluation_network.GetFltAttrDatN(
     #         #         bfs_node_id, Constants.LABEL_REACH+Constants.UNLABELED)
-            
     #     return size_estimate
                 
     def check_merge_graph(self):
