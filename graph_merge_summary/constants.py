@@ -17,6 +17,7 @@ from enum import Enum
 # TRAVERSAL_FRONTIERS("TRAVERSAL_FRONTIERS");
 
 class Constants(str, Enum):
+    UNLABELED = "UNLABELED"
     NO_LABEL = "NO_LABEL"
     SEPARATOR = "_"
 
@@ -62,3 +63,6 @@ class Constants(str, Enum):
     # HN_AVG_NODE_WEIGHT = "AVG_NUMBER_OF_INNER_NODES" # for a given hyper node, this indicates the average number of inner nodes its super nodes have
 
     # HE_EDGE_WEIGHT = "HE_NUMBER_OF_EDGES"
+
+    def __str__(self) -> str:
+        return str.__str__(self)
