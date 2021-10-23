@@ -7,12 +7,39 @@ try:
 except ImportError:
     pass
 from time import time, strftime, gmtime
+import tracemalloc
 
 from .context import __start_time__
+
+class TestTracker:
+    def __init__(self, track_memory):
+        if track_memory:
+            tracemalloc.start()
+        self.start()
+        
+    def start(self):
+        """Starts the tracker."""
+        self.mem, _ = tracemalloc.get_traced_memory()
+        self.time = time()
+        tracemalloc.reset_peak()
+    
+    def track(self):
+        """Returns time elapsed, memory increase and memory increase peak 
+        since last time start was called.
+        """
+        elapsed_time = time() - self.time
+        current_mem, current_peak_mem = tracemalloc.get_traced_memory()
+        mem_increase = current_mem - self.mem
+        mem_increase_peak = current_peak_mem - self.mem
+        
+        return elapsed_time, mem_increase, mem_increase_peak
+
 
 def stopwatch() -> str:
     return strftime("%H:%M:%S", gmtime(time() - __start_time__))
 
+def test_print(message):
+    print(f'[{current_time_str()}] - [{stopwatch()}] {message}')
 
 def elapsed_time_str(start_time: float) -> str:
     """Returns the elapsed time since the given start time as a string."""
@@ -23,6 +50,12 @@ def elapsed_time(start_time: float) -> float:
     """Returns the elapsed time since the given start time."""
     return (time() - start_time)
 
+
+def current_date_time_str():
+    return strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
+
+def current_time_str():
+    return strftime('%Hh%Mm%Ss', gmtime(time()))
 
 def total_size(o, handlers={}, verbose=False):
     """ Returns the approximate memory footprint an object and all of its contents.
@@ -65,7 +98,3 @@ def total_size(o, handlers={}, verbose=False):
         return s
 
     return sizeof(o)
-
-
-def current_data_time_str():
-    return strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
