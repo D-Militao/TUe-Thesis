@@ -1,7 +1,6 @@
 import multiprocessing
 import random
 import math
-import tqdm
 from multiprocessing import Pool, TimeoutError
 from pprint import pprint
 from dataclasses import dataclass
