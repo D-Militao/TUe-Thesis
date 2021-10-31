@@ -170,8 +170,7 @@ class GraphMergeSummary:
             edge_id = self.network.GetEI(src_node_id, dst_node_id).GetId()
             # We need to get the label directly from network because
             # sub_network does not point to the attributes
-            label = self.network.GetStrAttrDatE(
-                edge_id, Constants.EDGE_LABEL)
+            label = self.network.GetStrAttrDatE(edge_id, Constants.EDGE_LABEL)
             labels_to_inner_edge_ids[label].append(edge_id)
 
         # Store label frequency percentage and calculate reachability
@@ -513,13 +512,13 @@ class GraphMergeSummary:
             self.compute_hyper_node_edges_and_attributes(
                 hyper_node, is_target_merge)
 
-    def build_merge_network(self, is_target_merge=True):
+    def build_merge_network(self, is_target_merge=False):
         if self.is_labeled:
             self.build_merge_network_labeled(is_target_merge=is_target_merge)
         else:
             self.build_merge_network_unlabeled(is_target_merge=False)
 
-    def cardinality_estimation_node_id(self, node_id):
+    def cardinality_estimation_unlabeled_node_id(self, node_id):
         super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
         hyper_node_id = self.evaluation_network.GetIntAttrDatN(super_node_id, Constants.META_NODE_ID)
         hyper_bfs_tree = self.merge_network.GetBfsTree(hyper_node_id, True, False)
@@ -545,21 +544,22 @@ class GraphMergeSummary:
 
         return size_estimate
 
-    # def cardinality_estimation_unlabeled_node_id(self, node_id):
-    #     super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
-    #     super_bfs_tree = self.evaluation_network.GetBfsTree(super_node_id, True, False)
-    #     size_estimate = 0
-    #     for NI in super_bfs_tree.Nodes():
-    #         bfs_node_id = NI.GetId()
-    #         node_weight = self.evaluation_network.GetFltAttrDatN(
-    #                 bfs_node_id, Constants.NODE_WEIGHT)
-    #         super_node_weight = self.evaluation_network.GetFltAttrDatN(
-    #                 bfs_node_id, Constants.SUPER_NODE_WEIGHT)
-    #         size_estimate += node_weight / super_node_weight
-    #         # size_estimate += self.evaluation_network.GetFltAttrDatN(
-    #         #         bfs_node_id, Constants.LABEL_REACH+Constants.UNLABELED)
-    #     return size_estimate
-
+    def cardinality_estimation_labeled(self, labels):
+        pass
+        # super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
+        # super_bfs_tree = self.evaluation_network.GetBfsTree(super_node_id, True, False)
+        # size_estimate = 0
+        # for NI in super_bfs_tree.Nodes():
+        #     bfs_node_id = NI.GetId()
+        #     node_weight = self.evaluation_network.GetFltAttrDatN(
+        #             bfs_node_id, Constants.NODE_WEIGHT)
+        #     super_node_weight = self.evaluation_network.GetFltAttrDatN(
+        #             bfs_node_id, Constants.SUPER_NODE_WEIGHT)
+        #     size_estimate += node_weight / super_node_weight
+        #     # size_estimate += self.evaluation_network.GetFltAttrDatN(
+        #     #         bfs_node_id, Constants.LABEL_REACH+Constants.UNLABELED)
+        # return size_estimate
+    
     def check_merge_graph(self):
         se_edge_weight = 0
         for EI in self.evaluation_graph.Edges():

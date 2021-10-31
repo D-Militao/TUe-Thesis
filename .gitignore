@@ -135,5 +135,8 @@ dmypy.json
 tmp/
 data/*
 !data/.gitkeep
+!data/labeled/.gitkeep
+!data/labeled/gmark/*
+!data/unlabeled/.gitkeep
 results/*
 !results/.gitkeep

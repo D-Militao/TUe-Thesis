@@ -73,10 +73,10 @@ def edge_file_to_network(filename, ordered_attributes, tab_separated=False, has_
             schema, filename, context, separator, has_title_line)
         
         # Save table to binary
-        FOut = snap.TFOut(bin_filename)
-        table.Save(FOut)
-        FOut.Flush()
-
+        # FOut = snap.TFOut(bin_filename)
+        # table.Save(FOut)
+        # FOut.Flush()
+        
     # network will be an object of type snap.TNEANet
     network = table.ToNetwork(snap.TNEANet, src_col, dst_col,
                               src_node_attr_v, dst_node_attr_v,
@@ -132,13 +132,13 @@ def load_author_repo_network(gmark_use_case, dump=False):
 
 def load_gmark_network(gmark_use_case, size=1000, dump=False):
     if gmark_use_case is GMarkUseCase.shop:
-        filename = f"data/gmark/shop/shop-graph-{size}.txt"
+        filename = f"data_old/gmark/shop/shop-graph-{size}.txt"
     elif gmark_use_case is GMarkUseCase.social:
-        filename = f"data/gmark/social/social-graph-{size}.txt"
+        filename = f"data_old/gmark/social/social-graph-{size}.txt"
     elif gmark_use_case is GMarkUseCase.test:
-        filename = f"data/gmark/test/test-graph-{size}.txt"
+        filename = f"data_old/gmark/test/test-graph-{size}.txt"
     elif gmark_use_case is GMarkUseCase.uniprot:
-        filename = f"data/gmark/uniprot/uniprot-graph-{size}.txt"
+        filename = f"data_old/gmark/uniprot/uniprot-graph-{size}.txt"
 
     # dict maintains insertion order
     # add the attributes according to the order they are in their file
@@ -158,6 +158,20 @@ def load_unlabeled_edge_file(filename):
     """
     edge_file_column_info = {
         EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
+        EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt)
+    }
+
+    return edge_file_to_network(filename, edge_file_column_info, tab_separated=True)
+
+
+def load_labeled_edge_file(filename):
+    """
+    Load unlabeled edge files where each row has two integers, 
+    the source node id and the destination node id.
+    """
+    edge_file_column_info = {
+        EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
+        EdgeFileColumns.EDGE: (__edge_label__, snap.atStr),
         EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt)
     }
 
