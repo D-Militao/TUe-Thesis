@@ -633,13 +633,13 @@ class FullTestLabeled:
             for k in self.k_values:
                 sketch_estimates = self.test_all_distance_sketch(
                     network, k, label_samples)
-                node_results['Sketch'] = sketch_estimates
+                node_results[f'Sketch k={k}'] = sketch_estimates
 
         if self.test_summary:
             summary_estimates = self.test_graph_merge_summary(
                 network, label_samples)
             for merge_type, estimates in summary_estimates.items():
-                node_results[f'Summary'+merge_type] = estimates
+                node_results[f'Summary {merge_type}'] = estimates
 
         return node_results
 

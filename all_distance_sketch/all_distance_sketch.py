@@ -279,12 +279,12 @@ class LabeledGraphSketch:
         size_estimate = 0
         while not queue.Empty():
             node_id = queue.pop(0)
-            exclude_label = node_id_exclude_label[node_id]
-            break_dist = math.inf
+            # exclude_label = node_id_exclude_label[node_id]
+            break_dist = dist
             
             for label in labels:
-                if label == exclude_label:
-                    continue
+                # if label == exclude_label:
+                #     continue
                 sketch = self.labels_node_sketches[label][node_id]
                 for pair in sketch:
                     ads_dist = pair.GetVal1()
@@ -296,8 +296,8 @@ class LabeledGraphSketch:
                         queue.append(ads_node_id)
                         ads_ranking = self.rankings[ads_node_id]
                         neighbors.AddSorted(ads_ranking, True)
-                    elif ads_node_id != node_id:
-                        break_dist = ads_dist
+                    # elif ads_node_id != node_id:
+                    #     break_dist = ads_dist
                     
         neighborhood_size = neighbors.Len()
         if neighborhood_size >= self.k:
