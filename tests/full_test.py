@@ -35,12 +35,15 @@ class FullTestUnlabeled:
         SKETCH_CREATION_TIME = "Sketch creation time"
         SKETCH_CREATION_MEM = "Sketch creation memory"
         SKETCH_CREATION_MEM_PEAK = "Sketch creation memory peak"
-        SKETCH_EST_TIME_BOTTOM_K = "Sketch estimation time bottom-k"
-        SKETCH_EST_MEM_BOTTOM_K = "Sketch estimation memory bottom-k"
-        SKETCH_EST_MEM_PEAK_BOTTOM_K = "Sketch estimation memory peak bottom-k"
-        SKETCH_EST_TIME_HIP = "Sketch estimation time HIP"
-        SKETCH_EST_MEM_HIP = "Sketch estimation memory HIP"
-        SKETCH_EST_MEM_PEAK_HIP = "Sketch estimation memory peak HIP"
+        SKETCH_EST_TIME = "Sketch estimation time"
+        SKETCH_EST_MEM = "Sketch estimation memory"
+        SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
+        # SKETCH_EST_TIME_BOTTOM_K = "Sketch estimation time bottom-k"
+        # SKETCH_EST_MEM_BOTTOM_K = "Sketch estimation memory bottom-k"
+        # SKETCH_EST_MEM_PEAK_BOTTOM_K = "Sketch estimation memory peak bottom-k"
+        # SKETCH_EST_TIME_HIP = "Sketch estimation time HIP"
+        # SKETCH_EST_MEM_HIP = "Sketch estimation memory HIP"
+        # SKETCH_EST_MEM_PEAK_HIP = "Sketch estimation memory peak HIP"
         # Summary labels
         SUMMARY_N_NODES = 'Summary no. nodes'
         SUMMARY_N_EDGES = 'Summary no. edges'
@@ -219,31 +222,28 @@ class FullTestUnlabeled:
         test_print(f"Finished creating k={k} sketch.")
 
         # Perform estimates on the sketch
-        test_print(
-            f"Estimating for N={self.N} with k={k} sketch and bottom-k estimator...")
+        test_print(f"Estimating for N={self.N} with k={k} sketch and bottom-k estimator...")
         self.test_tracker.start()
         bottom_k_estimates = snap.TFltV()
         for node_id in node_ids:
             bottom_k_estimates.append(
                 graph_sketch.cardinality_estimation_bottom_k_node_id(node_id))
         bottom_k_estimates.append(sum(bottom_k_estimates))
-        estimates[f'Sketch k={k} bottom-k'] = bottom_k_estimates
+        # estimates[f'Sketch k={k} bottom-k'] = bottom_k_estimates
+        estimates[f'Sketch k={k}'] = bottom_k_estimates
         est_bottom_k_time, est_bottom_k_mem, est_bottom_k_mem_peak = self.test_tracker.track()
-        test_print(
-            f"Finished estimating for N={self.N} with k={k} sketch and bottom-k estimator.")
+        test_print(f"Finished estimating for N={self.N} with k={k} sketch and bottom-k estimator.")
 
-        test_print(
-            f"Estimating for N={self.N} with k={k} sketch and HIP estimator...")
-        self.test_tracker.start()
-        hip_estimates = snap.TFltV()
-        for node_id in node_ids:
-            hip_estimates.append(
-                graph_sketch.cardinality_estimation_hip_node_id(node_id))
-        hip_estimates.append(sum(hip_estimates))
-        estimates[f'Sketch k={k} HIP'] = hip_estimates
-        est_hip_time, est_hip_mem, est_hip_mem_peak = self.test_tracker.track()
-        test_print(
-            f"Finished estimating for N={self.N} with k={k} sketch and HIP estimator.")
+        # test_print(f"Estimating for N={self.N} with k={k} sketch and HIP estimator...")
+        # self.test_tracker.start()
+        # hip_estimates = snap.TFltV()
+        # for node_id in node_ids:
+        #     hip_estimates.append(
+        #         graph_sketch.cardinality_estimation_hip_node_id(node_id))
+        # hip_estimates.append(sum(hip_estimates))
+        # estimates[f'Sketch k={k} HIP'] = hip_estimates
+        # est_hip_time, est_hip_mem, est_hip_mem_peak = self.test_tracker.track()
+        # test_print(f"Finished estimating for N={self.N} with k={k} sketch and HIP estimator.")
 
         # Add data to results
         k_label = f' k={k}'
@@ -253,18 +253,24 @@ class FullTestUnlabeled:
                      k_label].append(sketch_mem)
         self.results[self.ResultsCol.SKETCH_CREATION_MEM_PEAK +
                      k_label].append(sketch_mem_peak)
-        self.results[self.ResultsCol.SKETCH_EST_TIME_BOTTOM_K +
+        self.results[self.ResultsCol.SKETCH_EST_TIME +
                      k_label].append(est_bottom_k_time)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_BOTTOM_K +
+        self.results[self.ResultsCol.SKETCH_EST_MEM +
                      k_label].append(est_bottom_k_mem)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_BOTTOM_K +
+        self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK +
                      k_label].append(est_bottom_k_mem_peak)
-        self.results[self.ResultsCol.SKETCH_EST_TIME_HIP +
-                     k_label].append(est_hip_time)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_HIP +
-                     k_label].append(est_hip_mem)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_HIP +
-                     k_label].append(est_hip_mem_peak)
+        # self.results[self.ResultsCol.SKETCH_EST_TIME_BOTTOM_K +
+        #              k_label].append(est_bottom_k_time)
+        # self.results[self.ResultsCol.SKETCH_EST_MEM_BOTTOM_K +
+        #              k_label].append(est_bottom_k_mem)
+        # self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_BOTTOM_K +
+        #              k_label].append(est_bottom_k_mem_peak)
+        # self.results[self.ResultsCol.SKETCH_EST_TIME_HIP +
+        #              k_label].append(est_hip_time)
+        # self.results[self.ResultsCol.SKETCH_EST_MEM_HIP +
+        #              k_label].append(est_hip_mem)
+        # self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_HIP +
+        #              k_label].append(est_hip_mem_peak)
 
         return estimates
 
@@ -327,7 +333,7 @@ class FullTestUnlabeled:
         files_sizes = {}
         for root, dirs, files in os.walk("data/unlabeled"):
             for file in files:
-                if file.endswith("wiki-Vote.txt"):
+                if file.endswith(".txt"):
                     path = os.path.join(root, file)
                     size = os.stat(path).st_size
                     files_sizes[file] = size

@@ -129,10 +129,17 @@ def test_labeled_ads():
 if __name__ == '__main__':
     full_test_unlabeled = FullTestUnlabeled(
         calc_tc=True, test_sketch=True, test_summary=False, test_func=False, 
-        seed=42, N=1000, k_values=[5, 10, 50], track_mem=False)
+        seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
     full_test_unlabeled.start_full_test()
     
     # full_test_labeled = FullTestLabeled(
     #     calc_tc=True, test_sketch=True, test_summary=False, 
     #     seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
     # full_test_labeled.start_full_test()
+
+
+
+    # full_test_unlabeled = FullTestUnlabeled(
+    #     calc_tc=True, test_sketch=True, test_summary=False, test_func=False, 
+    #     seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
+    # full_test_unlabeled.start_full_test()

@@ -67,15 +67,14 @@ class GraphSketch:
                     k_smallest_dist = sketch[sketch_len - self.k].GetVal1()
                     if k_smallest_dist > parent_distance:
                         insert = True
-                    elif k_smallest_dist == parent_distance:
-                        insert
-                        if sketch_len == self.k:
-                            insert = True
-                        else:
-                            k_min_one_smallest_dist = (
-                                sketch[sketch_len - self.k - 1].GetVal1())
-                            if k_min_one_smallest_dist != parent_distance:
-                                insert = True
+                    # elif k_smallest_dist == parent_distance:
+                    #     if sketch_len == self.k:
+                    #         insert = True
+                    #     else:
+                    #         k_min_one_smallest_dist = (
+                    #             sketch[sketch_len - self.k - 1].GetVal1())
+                    #         if k_min_one_smallest_dist != parent_distance:
+                    #             insert = True
 
                 # We only continue the search if we insert
                 if insert:
@@ -231,13 +230,14 @@ class LabeledGraphSketch:
                     k_smallest_dist = sketch[sketch_len - self.k].GetVal1()
                     if k_smallest_dist > parent_distance:
                         insert = True
-                    elif k_smallest_dist == parent_distance and (sketch_len - self.k - 1) >= 0:
-                        k_min_one_smallest_dist = (
-                            sketch[sketch_len - self.k - 1].GetVal1())
-                        if sketch_len == self.k:
-                            insert = True
-                        elif k_min_one_smallest_dist > parent_distance:
-                            insert = True
+                    # elif k_smallest_dist == parent_distance:
+                    #     if sketch_len == self.k:
+                    #         insert = True
+                    #     else:
+                    #         k_min_one_smallest_dist = (
+                    #             sketch[sketch_len - self.k - 1].GetVal1())
+                    #         if k_min_one_smallest_dist != parent_distance:
+                    #             insert = True
 
                 # We only continue the search if we insert
                 if insert:
