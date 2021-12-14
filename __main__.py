@@ -12,7 +12,7 @@ from all_distance_sketch import GraphSketch, LabeledGraphSketch
 import estimation_function
 import tests.test_estimation as test_estimation
 import tests.test_summary as test_summary
-import tests.plot_results as plot_results
+# import tests.plot_results as plot_results
 from tests.test_util import current_date_time_str, current_time_str
 
 def notebook_example_labeled_sketch_test():
