@@ -10,27 +10,30 @@ from time import time, strftime, gmtime
 
 from .context import __start_time__
 
+
 class TestTracker:
-    def __init__(self, track_memory):
+    def __init__(self):
         self.start()
-        
+
     def start(self):
         """Starts the tracker."""
         self.time = time()
-    
+
     def track(self):
         """Returns time elapsed, memory increase and memory increase peak 
         since last time start was called.
         """
         elapsed_time = time() - self.time
-        return elapsed_time, -1, -1
+        return elapsed_time
 
 
 def stopwatch() -> str:
     return strftime("%H:%M:%S", gmtime(time() - __start_time__))
 
+
 def test_print(message):
     print(f'[{current_time_str()}] - [{stopwatch()}] {message}')
+
 
 def elapsed_time_str(start_time: float) -> str:
     """Returns the elapsed time since the given start time as a string."""
@@ -45,8 +48,10 @@ def elapsed_time(start_time: float) -> float:
 def current_date_time_str():
     return strftime('%Y-%m-%d_%Hh%Mm%Ss', gmtime(time()))
 
+
 def current_time_str():
     return strftime('%Hh%Mm%Ss', gmtime(time()))
+
 
 def total_size(o, handlers={}, verbose=False):
     """ Returns the approximate memory footprint an object and all of its contents.
@@ -89,3 +94,45 @@ def total_size(o, handlers={}, verbose=False):
         return s
 
     return sizeof(o)
+
+
+def size_transitive_closure(network):
+    size = 0
+    for NI in network.Nodes():
+        node_id = NI.GetId()
+        bfs_tree = network.GetBfsTree(node_id, True, False)
+        # NOTE We are counting a nodes connection to itself even if no such edge exists
+        size += bfs_tree.GetNodes()
+    return size
+
+
+def size_transitive_closure_node_ids(network, node_ids):
+    size = 0
+    for node_id in node_ids:
+        bfs_tree = network.GetBfsTree(node_id, True, False)
+        # NOTE We are counting a nodes connection to itself even if no such edge exists
+        size += bfs_tree.GetNodes()
+    return size
+
+
+def size_transitive_closure_node_pairs(network, node_id_pairs):
+    size = 0
+    for (src_node_id, dst_node_id) in node_id_pairs:
+        bfs_tree = network.GetBfsTree(src_node_id, True, False)
+        for NI in bfs_tree.Nodes():
+            node_id = NI.GetId()
+            if node_id == dst_node_id:
+                size += 1
+                break
+    return size
+
+
+def size_transitive_closure_node_sets(network, src_nodes, dst_nodes):
+    size = 0
+    for src_node_id in src_nodes:
+        bfs_tree = network.GetBfsTree(src_node_id, True, False)
+        for NI in bfs_tree.Nodes():
+            node_id = NI.GetId()
+            if node_id in dst_nodes:
+                size += 1
+    return size

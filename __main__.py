@@ -1,16 +1,57 @@
 from enum import Enum
 import random
-import tracemalloc
-import pickle
+import pandas as pd
 
 import snap 
 
 from tests.full_test import FullTestUnlabeled, FullTestLabeled
 from snap_util import load_data
-from graph_merge_summary import GraphMergeSummary, Constants
+from graph_merge_summary import GraphMergeSummary, UnlabeledGraphSummary, Constants
 from all_distance_sketch import GraphSketch, LabeledGraphSketch
 
-def notebook_summary_test():
+import estimation_function
+import tests.test_estimation as test_estimation
+import tests.test_summary as test_summary
+import tests.plot_results as plot_results
+from tests.test_util import current_date_time_str, current_time_str
+
+def notebook_example_labeled_sketch_test():
+    # network = snap.TNEANet.New()
+    # for i in range(1, 9+1):
+    #     network.AddNode(i)
+
+    # # Component 1
+    # network.AddEdge(2, 1)
+    # network.AddEdge(2, 4)
+    # network.AddEdge(3, 2)
+    # network.AddEdge(3, 5)
+    # network.AddEdge(4, 5)
+    # network.AddEdge(5, 2)
+    
+    # # Component 2
+    # # network.AddEdge(6, 3)
+    # # network.AddEdge(7, 2)
+    # # network.AddEdge(8, 1)
+    # # network.AddEdge(9, 1)
+    
+    network = load_data.load_labeled_sketch_example()
+    sketch = LabeledGraphSketch(network, 2)
+    sketch.calculate_graph_sketch()
+    print('##### Rankings #####')
+    for node, rank in sketch.rankings.items():
+        print(f'Node:{node}; Rank: {rank}')
+        
+    print('##### Sketches #####')
+    for label, sketches in sketch.labels_node_sketches.items():
+        print(f'Label: {label}')
+        for node, n_sketch in sketches.items():
+            print(f'\tADS({node}):')
+            for pair in n_sketch:
+                dist = pair.GetVal1()
+                node_s = pair.GetVal2()
+                print(f'\t\t{node_s}, {dist}')
+
+def load_notebook_example_unlabeled():
     network = snap.TNEANet.New()
     for i in range(1, 11):
         network.AddNode(i)
@@ -36,6 +77,11 @@ def notebook_summary_test():
     network.AddEdge(3, 6)
     network.AddEdge(5, 10)
     network.AddEdge(8, 10)
+    
+    return network
+
+def notebook_example_unlabeled_summary_test():
+    network = load_notebook_example_unlabeled()
 
     labels = {}
     for NI in network.Nodes():
@@ -68,6 +114,7 @@ def notebook_summary_test():
         super_node_id = summary.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
         hyper_node_id = summary.evaluation_network.GetIntAttrDatN(super_node_id, Constants.META_NODE_ID)
         print(node_id, super_node_id, hyper_node_id)
+
 
 def bfs(graph, root_node_id, labels):
     queue = snap.TIntV()
@@ -124,22 +171,141 @@ def test_labeled_ads():
         est_unlabeled_values[node_id] = est_unlabeled
         print(f'Node id: {node_id}; TC: {tc}; Est unlabeled: {est_unlabeled}; Est labeled: {est_labeled}')
         # print(f'Node id: {node_id}; TC: {tc}; Est labeled: {est_labeled}')
-        
-        
+
+    
+def run_estimation_function_paper_test():
+    n_iters = 5
+    
+    # sizes = []
+    # x = 5000
+    # while x < 50001:
+    #     sizes.append((5000, x))
+    #     if x < 20000:
+    #         x += 2500
+    #     elif x < 30000:
+    #         x += 5000
+    #     else:
+    #         x += 10000
+    
+    sizes = [(25, 50)]
+    for i in range(5):
+        for (x, y) in [(50, 100),(100, 200), (250, 500)]:
+            sizes.append((x*10**i, y*10**i))
+    print(sizes)        
+    
+    # sizes = [(100, 100), (100, 200), (100, 300), (100, 400), (100, 500), (100, 1000), (1000, 2000)]
+    # sizes = [(100000, 200000), (1000000, 2000000)]
+    # (10000, 20000), (100000, 200000), (1000000, 2000000)
+    df = test_estimation.estimation_function_paper_test(n_iters, N=10, sizes=sizes)
+    
+
+def run_estimation_function_real_data_test():
+    n_iters = 5
+    files_to_skip = ['wiki-Vote.txt', 'wiki-Vote.txt', 'web-NotreDame.txt', 
+                     'web-Stanford.txt', 'twitter_combined.txt', 
+                     'soc-Epinions1.txt', 'amazon0601.txt', 'web-Google.txt', 
+                     'web-BerkStan.txt', ]
+    df = test_estimation.estimation_function_real_data_test(
+        n_iters, N=10, max_files_tested=100, files_to_skip=files_to_skip)
+
+
+def run_graph_merge_summary_test_gmark():
+    n_iters = 1
+    test_summary.graph_merge_summary_test_gmark(n_iters=n_iters)
+
 if __name__ == '__main__':
+    # filename = 'data/unlabeled/web-NotreDame.txt'
+    # network = load_data.load_unlabeled_edge_file(filename)
+    # # network = load_notebook_example_unlabeled()
+    # summary = UnlabeledGraphSummary(network)
+    # summary.build_summary()
+    # print(summary.merge_network.GetNodes(), summary.merge_network.GetEdges())
+    # print(summary.cardinality_estimation_node_id(155762))
+    # notebook_example_labeled_sketch_test()
+    # run_graph_merge_summary_test_gmark()
+    # run_estimation_function_real_data_test()
+    # run_estimation_function_paper_test()
+    
+    ##########
+    # SKETCH #
+    ##########
+    # Plot ads paper results
+    # filepath = 'results/final/sketch/ads_paper_results.csv'
+    # plot_results.results_paper_plots(filepath)
+    
+    # Plot sketch unlabeled data results
+    # folder_path = 'results/v3-results'
+    # drop_headers = ['Function', 'Summary', 'Sketch k=100']
+    # drop_headers.append('Sketch k=5')
+    # drop_headers.append('Sketch k=10')
+    # plot_results.sketch_results_plots(
+    #     folder_path, drop_headers, 
+    #     plot_datasets_separate=False, plot_sketches_separate=True, plot_combined=False)
+    
+    # Plot sketch times
+    # filepath = 'results/final/sketch/ads_rw_times.csv'
+    # plot_results.sketch_time_plots(filepath)
+    
+    ###########
+    # SUMMARY #
+    ###########
+    # Plot summary gmark compression results
+    # filepath = 'results/final/summary/summary_gmark_test_results_compression.csv'
+    # plot_results.summary_plots_gmark_compression(filepath)
+    
+    # Plot summary gmark query results
+    # filepath = 'results/final/summary/summary_gmark_test_results_queries.csv'
+    # plot_results.summary_plots_gmark_queries(filepath)
+    
+    
+    ##############
+    # ESTIMATION #
+    ##############
+    # Plot est func paper 5k node graph results
+    # filepath = 'results/final/estimation/estimation_function_paper_test_results_5k_nodes.csv'
+    # plot_results.estimation_plot_paper(filepath, False)
+    
+    # # Plot est func paper density=2 graph 
+    # filepath = 'results/final/estimation/estimation_function_paper_test_results_density_2.csv'
+    # plot_results.estimation_plot_paper(filepath, True)
+    
+    # Plot est func real world datasets
+    # filepath = 'results/final/estimation/estimation_function_real_world_results.csv'
+    # plot_results.estimation_plot_real_world(filepath)
+    
+    # Plot est func real world datasets individual nodes
+    # folder_path = 'results/final/estimation/individual_results'
+    # plot_results.estimation_results_plot_rw(folder_path)
+    
+    ##################
+    # LABELED SKETCH #
+    ##################
+    
+    
+    #####################
+    # UNLABELED SUMMARY #
+    #####################
+    
+    # Plot unlabeled summary compression and time
+    # filepath = 'results/final/unlabeled_summary/2021-12-04_18h27m20s_results_N=100.csv'
+    # filepath = 'results/2021-12-06_22h26m59s_results_N=100.csv'
+    # plot_results.unlabeled_summary_plots(filepath)
+    
+    
+    
     full_test_unlabeled = FullTestUnlabeled(
-        calc_tc=True, test_sketch=True, test_summary=False, test_func=False, 
-        seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
-    full_test_unlabeled.start_full_test()
+        calc_tc=True, test_sketch=False, test_summary=True, test_func=False, 
+        N=100, k_values=[5, 10, 50]) # seed=42
+    full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
     
     # full_test_labeled = FullTestLabeled(
     #     calc_tc=True, test_sketch=True, test_summary=False, 
-    #     seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
+    #     seed=42, N=100, k_values=[5, 10, 50])
     # full_test_labeled.start_full_test()
 
 
 
     # full_test_unlabeled = FullTestUnlabeled(
     #     calc_tc=True, test_sketch=True, test_summary=False, test_func=False, 
-    #     seed=42, N=100, k_values=[5, 10, 50], track_mem=False)
+    #     seed=42, N=100, k_values=[5, 10, 50])
     # full_test_unlabeled.start_full_test()

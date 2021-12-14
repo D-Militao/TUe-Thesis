@@ -10,7 +10,7 @@ import tracemalloc
 import snap
 
 from .context import snap_util, load_data
-from .context import GraphMergeSummary
+from .context import GraphMergeSummary, UnlabeledGraphSummary
 from .context import GraphSketch, LabeledGraphSketch
 from .context import estimation_function
 from .test_util import TestTracker, test_print, current_date_time_str
@@ -25,44 +25,25 @@ class FullTestUnlabeled:
         N_Z_DEG = 'No. zero degree'
         MAX_DEG = 'Max degree'
         LOAD_TIME = 'Loading time'
-        LOAD_MEM = 'Loading memory'
-        LOAD_MEM_PEAK = 'Loading memory peak'
         # TC labels
         TC_TIME = "TC time"
-        TC_MEM = "TC memory"
-        TC_MEM_PEAK = "TC memory peak"
         # Sketch labels
         SKETCH_CREATION_TIME = "Sketch creation time"
-        SKETCH_CREATION_MEM = "Sketch creation memory"
-        SKETCH_CREATION_MEM_PEAK = "Sketch creation memory peak"
         SKETCH_EST_TIME = "Sketch estimation time"
-        SKETCH_EST_MEM = "Sketch estimation memory"
-        SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
         # SKETCH_EST_TIME_BOTTOM_K = "Sketch estimation time bottom-k"
-        # SKETCH_EST_MEM_BOTTOM_K = "Sketch estimation memory bottom-k"
-        # SKETCH_EST_MEM_PEAK_BOTTOM_K = "Sketch estimation memory peak bottom-k"
         # SKETCH_EST_TIME_HIP = "Sketch estimation time HIP"
-        # SKETCH_EST_MEM_HIP = "Sketch estimation memory HIP"
-        # SKETCH_EST_MEM_PEAK_HIP = "Sketch estimation memory peak HIP"
         # Summary labels
         SUMMARY_N_NODES = 'Summary no. nodes'
         SUMMARY_N_EDGES = 'Summary no. edges'
-        SUMMARY_EVAL_TIME = "Summary evaluation time"
-        SUMMARY_EVAL_MEM = "Summary evaluation memory"
-        SUMMARY_EVAL_MEM_PEAK = "Summary evaluation memory peak"
-        SUMMARY_MERGE_TIME = "Summary merge time"
-        SUMMARY_MERGE_MEM = "Summary merge memory"
-        SUMMARY_MERGE_MEM_PEAK = "Summary merge memory peak"
+        SUMMARY_TIME = "Summary time"
         SUMMARY_EST_TIME = "Summary estimation time"
-        SUMMARY_EST_MEM = "Summary estimation memory"
-        SUMMARY_EST_MEM_PEAK = "Summary estimation memory peak"
         # Estimation function labels
         # * there aren't any really, it's instant
 
         def __str__(self) -> str:
             return str.__str__(self)
 
-    def __init__(self, calc_tc=True, test_sketch=True, test_summary=True, test_func=True, seed=42, N=1000, k_values=[5, 10, 50, 100], track_mem=False):
+    def __init__(self, calc_tc=True, test_sketch=True, test_summary=True, test_func=True, seed=42, N=1000, k_values=[5, 10, 50, 100]):
         self.calc_tc = calc_tc
         self.test_sketch = test_sketch
         self.test_summary = test_summary
@@ -70,15 +51,11 @@ class FullTestUnlabeled:
         self.seed = seed
         self.N = N
         self.k_values = k_values
-        self.track_mem = track_mem
         self.results = {}
         self.init_results()
-        self.test_tracker = TestTracker(track_mem)
+        self.test_tracker = TestTracker()
         self.test_timestamp = current_date_time_str()
-        if self.track_mem:
-            self.results_filename = f"results/{self.test_timestamp}_memory_results_N={self.N}.csv"
-        else:
-            self.results_filename = f"results/{self.test_timestamp}_results_N={self.N}.csv"
+        self.results_filename = f"results/{self.test_timestamp}_results_N={self.N}.csv"
 
     def init_results(self):
         self.results.clear()
@@ -109,7 +86,7 @@ class FullTestUnlabeled:
 
         self.test_tracker.start()
         network = load_data.load_unlabeled_edge_file(filepath)
-        load_time, load_mem, load_mem_peak = self.test_tracker.track()
+        load_time = self.test_tracker.track()
 
         n_nodes = network.GetNodes()
         n_edges = network.GetEdges()
@@ -123,8 +100,6 @@ class FullTestUnlabeled:
         self.results[self.ResultsCol.N_Z_DEG].append(n_z_deg)
         self.results[self.ResultsCol.MAX_DEG].append(max_degree)
         self.results[self.ResultsCol.LOAD_TIME].append(load_time)
-        self.results[self.ResultsCol.LOAD_MEM].append(load_mem)
-        self.results[self.ResultsCol.LOAD_MEM_PEAK].append(load_mem_peak)
 
         return network
 
@@ -141,23 +116,49 @@ class FullTestUnlabeled:
         test_print(f"Finished estimating using the estimation function.")
         return estimates
 
-    def test_graph_merge_summary(self, network, node_ids) -> dict:
+    def test_graph_merge_summary_unlabeled(self, network, node_ids) -> dict:
+        # Create summary
+        test_print(f"Creating summary...")
+        self.test_tracker.start()
+        summary = UnlabeledGraphSummary(network)
+        summary.build_summary()
+        summary_time = self.test_tracker.track()
+        summary_n_nodes = summary.merge_network.GetNodes()
+        summary_n_edges = summary.merge_network.GetEdges()
+        test_print(f"Finished creating evaluation summary.")
+        
+        # Perform estimates on summary
+        test_print(f"Estimating for N={self.N} on summary...")
+        self.test_tracker.start()
+        estimates = snap.TFltV()
+        for node_id in node_ids:
+            estimates.append(summary.cardinality_estimation_node_id(node_id))
+        estimates.append(sum(estimates))
+        est_time = self.test_tracker.track()
+        test_print(f"Finished estimating for N={self.N} on summary.")
+
+        # Add data to results
+        self.results[self.ResultsCol.SUMMARY_N_NODES].append(summary_n_nodes)
+        self.results[self.ResultsCol.SUMMARY_N_EDGES].append(summary_n_edges)
+        self.results[self.ResultsCol.SUMMARY_TIME].append(summary_time)
+        self.results[self.ResultsCol.SUMMARY_EST_TIME].append(est_time)
+
+        return estimates
+
+        
         # merge_types = [False, True]
 
         # Create the summary
-        test_print(f"Creating evaluation summary...")
-        self.test_tracker.start()
-        summary = GraphMergeSummary(network, is_labeled=False)
-        summary.build_evalutation_network()
-        eval_time, eval_mem, eval_mem_peak = self.test_tracker.track()
-        summary_n_nodes = summary.evaluation_network.GetNodes()
-        summary_n_edges = summary.evaluation_network.GetEdges()
-        test_print(f"Finished creating evaluation summary.")
+        # test_print(f"Creating evaluation summary...")
+        # self.test_tracker.start()
+        # summary = GraphMergeSummary(network, is_labeled=False)
+        # summary.build_evalutation_network()
+        # eval_time = self.test_tracker.track()
+        # summary_n_nodes = summary.evaluation_network.GetNodes()
+        # summary_n_edges = summary.evaluation_network.GetEdges()
+        # test_print(f"Finished creating evaluation summary.")
 
-        self.results[self.ResultsCol.SUMMARY_EVAL_TIME].append(eval_time)
-        self.results[self.ResultsCol.SUMMARY_EVAL_MEM].append(eval_mem)
-        self.results[self.ResultsCol.SUMMARY_EVAL_MEM_PEAK].append(
-            eval_mem_peak)
+        # self.results[self.ResultsCol.SUMMARY_EVAL_TIME].append(eval_time)
 
         # self.results[self.ResultsCol.SUMMARY_N_NODES].append(summary_n_nodes)
         # self.results[self.ResultsCol.SUMMARY_N_EDGES].append(summary_n_edges)
@@ -170,55 +171,48 @@ class FullTestUnlabeled:
         #     estimates.append(
         #         summary.cardinality_estimation_unlabeled_node_id(node_id))
         # estimates.append(sum(estimates))
-        # est_time, est_mem, est_mem_peak = self.test_tracker.track()
+        # est_time = self.test_tracker.track()
         # test_print(f"Finished estimating for N={self.N} on summary.")
 
         # self.results[self.ResultsCol.SUMMARY_EST_TIME].append(est_time)
-        # self.results[self.ResultsCol.SUMMARY_EST_MEM].append(est_mem)
-        # self.results[self.ResultsCol.SUMMARY_EST_MEM_PEAK].append(est_mem_peak)
 
         # return estimates
 
         # Loop below is for using the merge graph
-        test_print(f"Creating merge summary...")
-        self.test_tracker.start()
-        summary.build_merge_network()
-        merge_time, merge_mem, merge_mem_peak = (self.test_tracker.track())
-        summary_n_nodes = summary.merge_network.GetNodes()
-        summary_n_edges = summary.merge_network.GetEdges()
-        test_print(f"Finished creating merge summary.")
+        # test_print(f"Creating merge summary...")
+        # self.test_tracker.start()
+        # summary.build_merge_network()
+        # merge_time = (self.test_tracker.track())
+        # summary_n_nodes = summary.merge_network.GetNodes()
+        # summary_n_edges = summary.merge_network.GetEdges()
+        # test_print(f"Finished creating merge summary.")
 
-        # Perform estimates on summary
-        test_print(f"Estimating for N={self.N} on merge summary...")
-        self.test_tracker.start()
-        estimates = snap.TFltV()
-        for node_id in node_ids:
-            estimates.append(summary.cardinality_estimation_labeled_node_id(node_id))
-        estimates.append(sum(estimates))
-        est_time, est_mem, est_mem_peak = self.test_tracker.track()
-        test_print(f"Finished estimating for N={self.N} on merge summary.")
+        # # Perform estimates on summary
+        # test_print(f"Estimating for N={self.N} on merge summary...")
+        # self.test_tracker.start()
+        # estimates = snap.TFltV()
+        # for node_id in node_ids:
+        #     estimates.append(summary.cardinality_estimation_unlabeled_node_id(node_id))
+        # estimates.append(sum(estimates))
+        # est_time = self.test_tracker.track()
+        # test_print(f"Finished estimating for N={self.N} on merge summary.")
 
-        # Add data to results
-        self.results[self.ResultsCol.SUMMARY_N_NODES].append(summary_n_nodes)
-        self.results[self.ResultsCol.SUMMARY_N_EDGES].append(summary_n_edges)
-        self.results[self.ResultsCol.SUMMARY_MERGE_TIME].append(merge_time)
-        self.results[self.ResultsCol.SUMMARY_MERGE_MEM].append(merge_mem)
-        self.results[self.ResultsCol.SUMMARY_MERGE_MEM_PEAK].append(
-            merge_mem_peak)
-        self.results[self.ResultsCol.SUMMARY_EST_TIME].append(est_time)
-        self.results[self.ResultsCol.SUMMARY_EST_MEM].append(est_mem)
-        self.results[self.ResultsCol.SUMMARY_EST_MEM_PEAK].append(est_mem_peak)
+        # # Add data to results
+        # self.results[self.ResultsCol.SUMMARY_N_NODES].append(summary_n_nodes)
+        # self.results[self.ResultsCol.SUMMARY_N_EDGES].append(summary_n_edges)
+        # self.results[self.ResultsCol.SUMMARY_MERGE_TIME].append(merge_time)
+        # self.results[self.ResultsCol.SUMMARY_EST_TIME].append(est_time)
 
-        return estimates
-
+        # return estimates
+    
     def test_all_distance_sketch(self, network, k, node_ids) -> snap.TFltV:
         estimates = {}
         # Create the sketch for the given k
         test_print(f"Creating k={k} sketch...")
         self.test_tracker.start()
-        graph_sketch = GraphSketch(network, k, seed=self.seed)
+        graph_sketch = GraphSketch(network, k) # seed=self.seed
         graph_sketch.calculate_graph_sketch()
-        sketch_time, sketch_mem, sketch_mem_peak = self.test_tracker.track()
+        sketch_time = self.test_tracker.track()
         test_print(f"Finished creating k={k} sketch.")
 
         # Perform estimates on the sketch
@@ -231,7 +225,7 @@ class FullTestUnlabeled:
         bottom_k_estimates.append(sum(bottom_k_estimates))
         # estimates[f'Sketch k={k} bottom-k'] = bottom_k_estimates
         estimates[f'Sketch k={k}'] = bottom_k_estimates
-        est_bottom_k_time, est_bottom_k_mem, est_bottom_k_mem_peak = self.test_tracker.track()
+        est_bottom_k_time = self.test_tracker.track()
         test_print(f"Finished estimating for N={self.N} with k={k} sketch and bottom-k estimator.")
 
         # test_print(f"Estimating for N={self.N} with k={k} sketch and HIP estimator...")
@@ -242,35 +236,19 @@ class FullTestUnlabeled:
         #         graph_sketch.cardinality_estimation_hip_node_id(node_id))
         # hip_estimates.append(sum(hip_estimates))
         # estimates[f'Sketch k={k} HIP'] = hip_estimates
-        # est_hip_time, est_hip_mem, est_hip_mem_peak = self.test_tracker.track()
+        # est_hip_time = self.test_tracker.track()
         # test_print(f"Finished estimating for N={self.N} with k={k} sketch and HIP estimator.")
 
         # Add data to results
         k_label = f' k={k}'
         self.results[self.ResultsCol.SKETCH_CREATION_TIME +
                      k_label].append(sketch_time)
-        self.results[self.ResultsCol.SKETCH_CREATION_MEM +
-                     k_label].append(sketch_mem)
-        self.results[self.ResultsCol.SKETCH_CREATION_MEM_PEAK +
-                     k_label].append(sketch_mem_peak)
         self.results[self.ResultsCol.SKETCH_EST_TIME +
                      k_label].append(est_bottom_k_time)
-        self.results[self.ResultsCol.SKETCH_EST_MEM +
-                     k_label].append(est_bottom_k_mem)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK +
-                     k_label].append(est_bottom_k_mem_peak)
         # self.results[self.ResultsCol.SKETCH_EST_TIME_BOTTOM_K +
         #              k_label].append(est_bottom_k_time)
-        # self.results[self.ResultsCol.SKETCH_EST_MEM_BOTTOM_K +
-        #              k_label].append(est_bottom_k_mem)
-        # self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_BOTTOM_K +
-        #              k_label].append(est_bottom_k_mem_peak)
         # self.results[self.ResultsCol.SKETCH_EST_TIME_HIP +
         #              k_label].append(est_hip_time)
-        # self.results[self.ResultsCol.SKETCH_EST_MEM_HIP +
-        #              k_label].append(est_hip_mem)
-        # self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK_HIP +
-        #              k_label].append(est_hip_mem_peak)
 
         return estimates
 
@@ -282,13 +260,11 @@ class FullTestUnlabeled:
             bfs_tree = network.GetBfsTree(node_id, True, False)
             tc_values.append(bfs_tree.GetNodes())
         tc_values.append(sum(tc_values))
-        tc_time, tc_mem, tc_mem_peak = self.test_tracker.track()
+        tc_time = self.test_tracker.track()
 
         test_print(f"Finished calculating TC for N={self.N} nodes.")
 
         self.results[self.ResultsCol.TC_TIME].append(tc_time)
-        self.results[self.ResultsCol.TC_MEM].append(tc_mem)
-        self.results[self.ResultsCol.TC_MEM_PEAK].append(tc_mem_peak)
 
         return tc_values
 
@@ -318,7 +294,7 @@ class FullTestUnlabeled:
                     node_results[label] = estimates
 
         if self.test_summary:
-            summary_estimates = self.test_graph_merge_summary(
+            summary_estimates = self.test_graph_merge_summary_unlabeled(
                 network, node_ids)
             node_results[f'Summary'] = summary_estimates
 
@@ -327,8 +303,8 @@ class FullTestUnlabeled:
             node_results[f'Function'] = func_estimates
 
         return node_results
-
-    def start_full_test(self, max_files_tested=inf):
+    
+    def start_full_test(self, max_files_tested=inf, num_files_skip=0):
         # Get the data files and their sizes in the data directory
         files_sizes = {}
         for root, dirs, files in os.walk("data/unlabeled"):
@@ -340,13 +316,15 @@ class FullTestUnlabeled:
 
         # create a file so that we can append after we have all the results of a network
         results_df = pd.DataFrame.from_dict(self.results)
-        if not self.track_mem:
-            results_df = results_df[results_df.columns.drop(
-                list(results_df.filter(regex='memory')))]
         results_df.to_csv(self.results_filename, mode='a', index=False)
 
-        file_counter = 0
+        files_skipped = 0
+        files_tested = 0
         for file, size in sorted(files_sizes.items(), key=lambda item: item[1]):
+            if files_skipped < num_files_skip:
+                files_skipped += 1
+                continue
+            
             network = self.load_network(root, file)
 
             node_results_df = self.full_test_network(network)
@@ -354,19 +332,14 @@ class FullTestUnlabeled:
                 node_results_filename = f"results/{self.test_timestamp}_{file}_node_results_N={self.N}.csv"
                 node_results_df.to_csv(node_results_filename, index=False)
 
-            # if not tracking memory, then remove memory columns
             results_df = pd.DataFrame.from_dict(self.results)
-            if not self.track_mem:
-                results_df = results_df[results_df.columns.drop(
-                    list(results_df.filter(regex='memory')))]
-            # append results to the file created earlier
             results_df.to_csv(self.results_filename, mode='a',
                               header=False, index=False)
             # reinitialize the results dict
             self.init_results()
 
-            file_counter += 1
-            if file_counter == max_files_tested:
+            files_tested += 1
+            if files_tested == max_files_tested:
                 break
 
 
@@ -379,53 +352,35 @@ class FullTestLabeled:
         N_Z_DEG = 'No. zero degree'
         MAX_DEG = 'Max degree'
         LOAD_TIME = 'Loading time'
-        LOAD_MEM = 'Loading memory'
-        LOAD_MEM_PEAK = 'Loading memory peak'
         # TC labels
         TC_TIME = "TC time"
-        TC_MEM = "TC memory"
-        TC_MEM_PEAK = "TC memory peak"
         # Sketch labels
         SKETCH_CREATION_TIME = "Sketch creation time"
-        SKETCH_CREATION_MEM = "Sketch creation memory"
-        SKETCH_CREATION_MEM_PEAK = "Sketch creation memory peak"
         SKETCH_EST_TIME = "Sketch estimation time"
-        SKETCH_EST_MEM = "Sketch estimation memory"
-        SKETCH_EST_MEM_PEAK = "Sketch estimation memory peak"
         # Summary labels
         SUMMARY_N_NODES = 'Summary no. nodes'
         SUMMARY_N_EDGES = 'Summary no. edges'
         SUMMARY_EVAL_TIME = "Summary evaluation time"
-        SUMMARY_EVAL_MEM = "Summary evaluation memory"
-        SUMMARY_EVAL_MEM_PEAK = "Summary evaluation memory peak"
         SUMMARY_MERGE_TIME = "Summary merge time"
-        SUMMARY_MERGE_MEM = "Summary merge memory"
-        SUMMARY_MERGE_MEM_PEAK = "Summary merge memory peak"
         SUMMARY_EST_TIME = "Summary estimation time"
-        SUMMARY_EST_MEM = "Summary estimation memory"
-        SUMMARY_EST_MEM_PEAK = "Summary estimation memory peak"
         # Estimation function labels
         # * there aren't any really, it's instant
 
         def __str__(self) -> str:
             return str.__str__(self)
 
-    def __init__(self, calc_tc=True, test_sketch=True, test_summary=True, seed=42, N=1000, k_values=[5, 10, 50, 100], track_mem=False):
+    def __init__(self, calc_tc=True, test_sketch=True, test_summary=True, seed=42, N=1000, k_values=[5, 10, 50]):
         self.calc_tc = calc_tc
         self.test_sketch = test_sketch
         self.test_summary = test_summary
         self.seed = seed
         self.N = N
         self.k_values = k_values
-        self.track_mem = track_mem
         self.results = {}
         self.init_results()
-        self.test_tracker = TestTracker(track_mem)
+        self.test_tracker = TestTracker()
         self.test_timestamp = current_date_time_str()
-        if self.track_mem:
-            self.results_filename = f"results/{self.test_timestamp}_memory_results_N={self.N}.csv"
-        else:
-            self.results_filename = f"results/{self.test_timestamp}_results_N={self.N}.csv"
+        self.results_filename = f"results/{self.test_timestamp}_results_N={self.N}.csv"
 
     def init_results(self):
         self.results.clear()
@@ -457,7 +412,7 @@ class FullTestLabeled:
 
         self.test_tracker.start()
         network = load_data.load_labeled_edge_file(filepath)
-        load_time, load_mem, load_mem_peak = self.test_tracker.track()
+        load_time = self.test_tracker.track()
 
         n_nodes = network.GetNodes()
         n_edges = network.GetEdges()
@@ -471,8 +426,6 @@ class FullTestLabeled:
         self.results[self.ResultsCol.N_Z_DEG].append(n_z_deg)
         self.results[self.ResultsCol.MAX_DEG].append(max_degree)
         self.results[self.ResultsCol.LOAD_TIME].append(load_time)
-        self.results[self.ResultsCol.LOAD_MEM].append(load_mem)
-        self.results[self.ResultsCol.LOAD_MEM_PEAK].append(load_mem_peak)
         return network
 
     def test_graph_merge_summary(self, network, rnd_labels) -> dict:
@@ -483,22 +436,19 @@ class FullTestLabeled:
         self.test_tracker.start()
         summary = GraphMergeSummary(network, is_labeled=True)
         summary.build_evalutation_network()
-        eval_time, eval_mem, eval_mem_peak = self.test_tracker.track()
+        eval_time = self.test_tracker.track()
         summary_n_nodes = summary.evaluation_network.GetNodes()
         summary_n_edges = summary.evaluation_network.GetEdges()
         test_print(f"Finished creating evaluation summary.")
 
         self.results[self.ResultsCol.SUMMARY_EVAL_TIME].append(eval_time)
-        self.results[self.ResultsCol.SUMMARY_EVAL_MEM].append(eval_mem)
-        self.results[self.ResultsCol.SUMMARY_EVAL_MEM_PEAK].append(
-            eval_mem_peak)
 
         merge_estimates = {}
         for merge_type in merge_types:
             test_print(f"Creating merge summary...")
             self.test_tracker.start()
             summary.build_merge_network(is_target_merge=merge_type)
-            merge_time, merge_mem, merge_mem_peak = (self.test_tracker.track())
+            merge_time = (self.test_tracker.track())
             summary_n_nodes = summary.merge_network.GetNodes()
             summary_n_edges = summary.merge_network.GetEdges()
             test_print(f"Finished creating merge summary.")
@@ -511,7 +461,7 @@ class FullTestLabeled:
                 estimate = summary.cardinality_estimation_labeled(labels)
                 estimates.append(estimate)
             merge_estimates[merge_type] = estimates
-            est_time, est_mem, est_mem_peak = self.test_tracker.track()
+            est_time = self.test_tracker.track()
             test_print(f"Finished estimating for N={self.N} on merge summary.")
 
             # Add data to results
@@ -522,26 +472,18 @@ class FullTestLabeled:
                          aux_label].append(summary_n_edges)
             self.results[self.ResultsCol.SUMMARY_MERGE_TIME +
                          aux_label].append(merge_time)
-            self.results[self.ResultsCol.SUMMARY_MERGE_MEM +
-                         aux_label].append(merge_mem)
-            self.results[self.ResultsCol.SUMMARY_MERGE_MEM_PEAK +
-                         aux_label].append(merge_mem_peak)
             self.results[self.ResultsCol.SUMMARY_EST_TIME +
                          aux_label].append(est_time)
-            self.results[self.ResultsCol.SUMMARY_EST_MEM +
-                         aux_label].append(est_mem)
-            self.results[self.ResultsCol.SUMMARY_EST_MEM_PEAK +
-                         aux_label].append(est_mem_peak)
-
+        
         return merge_estimates
 
     def test_all_distance_sketch(self, network, k, rnd_labels) -> snap.TFltV:
         # Create the sketch for the given k
         test_print(f"Creating k={k} sketch...")
         self.test_tracker.start()
-        graph_sketch = LabeledGraphSketch(network, k, seed=self.seed)
+        graph_sketch = LabeledGraphSketch(network, k) # seed=self.seed
         graph_sketch.calculate_graph_sketch()
-        sketch_time, sketch_mem, sketch_mem_peak = self.test_tracker.track()
+        sketch_time = self.test_tracker.track()
         test_print(f"Finished creating k={k} sketch.")
 
         # Perform estimates on the sketch
@@ -551,23 +493,15 @@ class FullTestLabeled:
         for labels  in rnd_labels:
             estimate = graph_sketch.cardinality_estimation_labels(labels)
             bottom_k_estimates.append(estimate)
-        est_bottom_k_time, est_bottom_k_mem, est_bottom_k_mem_peak = self.test_tracker.track()
+        est_bottom_k_time = self.test_tracker.track()
         test_print(f"Finished estimating for N={self.N} with k={k} sketch.")
 
         # Add data to results
         k_label = f' k={k}'
         self.results[self.ResultsCol.SKETCH_CREATION_TIME +
                      k_label].append(sketch_time)
-        self.results[self.ResultsCol.SKETCH_CREATION_MEM +
-                     k_label].append(sketch_mem)
-        self.results[self.ResultsCol.SKETCH_CREATION_MEM_PEAK +
-                     k_label].append(sketch_mem_peak)
         self.results[self.ResultsCol.SKETCH_EST_TIME +
                      k_label].append(est_bottom_k_time)
-        self.results[self.ResultsCol.SKETCH_EST_MEM +
-                     k_label].append(est_bottom_k_mem)
-        self.results[self.ResultsCol.SKETCH_EST_MEM_PEAK +
-                     k_label].append(est_bottom_k_mem_peak)
 
         return bottom_k_estimates
 
@@ -604,13 +538,11 @@ class FullTestLabeled:
         for labels in rnd_labels:
             tc = self.full_transitive_closure(network, labels)
             tc_values.append(tc)
-        tc_time, tc_mem, tc_mem_peak = self.test_tracker.track()
+        tc_time = self.test_tracker.track()
 
         test_print(f"Finished calculating TC for N={self.N}.")
 
         self.results[self.ResultsCol.TC_TIME].append(tc_time)
-        self.results[self.ResultsCol.TC_MEM].append(tc_mem)
-        self.results[self.ResultsCol.TC_MEM_PEAK].append(tc_mem_peak)
 
         return tc_values
 
@@ -661,9 +593,6 @@ class FullTestLabeled:
 
         # create a file so that we can append after we have all the results of a network
         results_df = pd.DataFrame.from_dict(self.results)
-        if not self.track_mem:
-            results_df = results_df[results_df.columns.drop(
-                list(results_df.filter(regex='memory')))]
         results_df.to_csv(self.results_filename, mode='a', index=False)
 
         file_counter = 0
@@ -676,12 +605,7 @@ class FullTestLabeled:
                 node_results_filename = f"results/{self.test_timestamp}_{file}_node_results_N={self.N}.csv"
                 node_results_df.to_csv(node_results_filename, index=False)
 
-            # if not tracking memory, then remove memory columns
             results_df = pd.DataFrame.from_dict(self.results)
-            if not self.track_mem:
-                results_df = results_df[results_df.columns.drop(
-                    list(results_df.filter(regex='memory')))]
-            # append results to the file created earlier
             results_df.to_csv(self.results_filename, mode='a',
                               header=False, index=False)
             # reinitialize the results dict

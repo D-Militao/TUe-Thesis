@@ -109,6 +109,18 @@ def load_pg_paper_network(dump=False):
     return edge_file_to_network(filename, edge_file_column_info)
 
 
+def load_labeled_sketch_example():
+    filename = "data_old/example/labeled_sketch_example.txt"
+
+    edge_file_column_info = {
+        EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
+        EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt),
+        EdgeFileColumns.EDGE: (__edge_label__, snap.atStr)
+    }
+
+    return edge_file_to_network(filename, edge_file_column_info)
+
+
 def load_author_repo_network(gmark_use_case, dump=False):
     if gmark_use_case is GMarkUseCase.shop:
         filename = "data/author_repo/shop_dataset.txt"

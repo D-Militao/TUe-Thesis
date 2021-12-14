@@ -164,7 +164,7 @@ class GraphSketch:
 
 
 class LabeledGraphSketch:
-    def __init__(self, graph, k: int, seed=None):
+    def __init__(self, graph, k: int, seed=None, rankings=None):
         self.graph = graph
         if isinstance(graph, snap.TUNGraph):
             self.tranposed_graph = graph
@@ -173,12 +173,16 @@ class LabeledGraphSketch:
         self.labels = snap_util.get_edges_attribute_values(graph, load_data.__edge_label__)
         self.k = k
         self.node_ids = snap.TIntV()
-        self.rankings = snap.TIntFltH()
+        if rankings is None:
+            self.rankings = snap.TIntFltH()
+        else:
+            self.rankings = rankings
+        
         self.labels_node_sketches = {}
         for label in self.labels:
             self.labels_node_sketches[label] = snap.TIntIntPrVH()
 
-        if not seed is None:
+        if seed is not None:
             random.seed(seed)
         for NI in graph.Nodes():
             node_id = NI.GetId()
@@ -187,8 +191,9 @@ class LabeledGraphSketch:
                 label_node_sketch = self.labels_node_sketches[label]
                 label_node_sketch[node_id] = snap.TIntPrV()
             
-            rank = random.uniform(0, 1)
-            self.rankings[node_id] = rank            
+            if rankings is None:
+                rank = random.uniform(0, 1)
+                self.rankings[node_id] = rank
 
     def calculate_graph_sketch(self):
         # pool = multiprocessing.Pool()
