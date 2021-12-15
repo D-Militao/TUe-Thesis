@@ -181,10 +181,23 @@ def load_labeled_edge_file(filename):
     Load unlabeled edge files where each row has two integers, 
     the source node id and the destination node id.
     """
-    edge_file_column_info = {
-        EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
-        EdgeFileColumns.EDGE: (__edge_label__, snap.atStr),
-        EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt)
-    }
-
+    if 'gmark' in filename:
+        edge_file_column_info = {
+            EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
+            EdgeFileColumns.EDGE: (__edge_label__, snap.atStr),
+            EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt),
+        }
+    elif 'soc-sign' in filename:
+        edge_file_column_info = {
+            EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atInt),
+            EdgeFileColumns.DST_COL: ('DST_COL', snap.atInt),
+            EdgeFileColumns.EDGE: (__edge_label__, snap.atStr),
+        }
+    elif 'reddit' in filename:
+        edge_file_column_info = {
+            EdgeFileColumns.SRC_COL: ('SRC_COL', snap.atStr),
+            EdgeFileColumns.DST_COL: ('DST_COL', snap.atStr),
+            EdgeFileColumns.EDGE: (__edge_label__, snap.atStr),
+        }
+    
     return edge_file_to_network(filename, edge_file_column_info, tab_separated=True)

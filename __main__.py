@@ -4,7 +4,7 @@ import pandas as pd
 
 import snap 
 
-from tests.full_test import FullTestUnlabeled, FullTestLabeled
+from tests.full_test import FullTestUnlabeled, FullTestLabeledSketch, FullTestLabeledSummary
 from snap_util import load_data
 from graph_merge_summary import GraphMergeSummary, UnlabeledGraphSummary, Constants
 from all_distance_sketch import GraphSketch, LabeledGraphSketch
@@ -293,16 +293,20 @@ if __name__ == '__main__':
     
     
     
-    full_test_unlabeled = FullTestUnlabeled(
-        calc_tc=True, test_sketch=False, test_summary=True, test_func=False, 
-        N=100, k_values=[5, 10, 50]) # seed=42
-    full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
+    # full_test_unlabeled = FullTestUnlabeled(
+    #     calc_tc=True, test_sketch=False, test_summary=True, test_func=False, 
+    #     N=100, k_values=[5, 10, 50]) # seed=42
+    # full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
     
-    # full_test_labeled = FullTestLabeled(
-    #     calc_tc=True, test_sketch=True, test_summary=False, 
-    #     seed=42, N=100, k_values=[5, 10, 50])
-    # full_test_labeled.start_full_test()
+    full_test_labeled_sketch = FullTestLabeledSketch(
+        calc_tc=True, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
+    full_test_labeled_sketch.start_full_test(
+        max_files_tested=100, num_files_skip=0)
 
+    full_test_labeled_summary = FullTestLabeledSummary(
+        calc_tc=True, test_summary=True, N=1) # seed=42, 
+    full_test_labeled_summary.start_full_test(
+        max_files_tested=100, num_files_skip=0)
 
 
     # full_test_unlabeled = FullTestUnlabeled(

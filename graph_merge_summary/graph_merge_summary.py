@@ -56,7 +56,7 @@ class GraphMergeSummary:
         self.merge_network = snap.TNEANet.New()
 
         # Node attributes
-        self.merge_network.AddStrAttrE(Constants.AVG_NODE_WEIGHT)
+        self.merge_network.AddFltAttrE(Constants.AVG_NODE_WEIGHT)
 
         # Edge Attributes
         self.merge_network.AddStrAttrE(Constants.EDGE_LABEL)
@@ -544,21 +544,33 @@ class GraphMergeSummary:
 
         return size_estimate
 
-    def cardinality_estimation_labeled(self, labels):
-        pass
-        # super_node_id = self.network.GetIntAttrDatN(node_id, Constants.META_NODE_ID)
-        # super_bfs_tree = self.evaluation_network.GetBfsTree(super_node_id, True, False)
-        # size_estimate = 0
-        # for NI in super_bfs_tree.Nodes():
-        #     bfs_node_id = NI.GetId()
-        #     node_weight = self.evaluation_network.GetFltAttrDatN(
-        #             bfs_node_id, Constants.NODE_WEIGHT)
-        #     super_node_weight = self.evaluation_network.GetFltAttrDatN(
-        #             bfs_node_id, Constants.SUPER_NODE_WEIGHT)
-        #     size_estimate += node_weight / super_node_weight
-        #     # size_estimate += self.evaluation_network.GetFltAttrDatN(
-        #     #         bfs_node_id, Constants.LABEL_REACH+Constants.UNLABELED)
-        # return size_estimate
+    def cardinality_estimation_label(self, label):
+        size_estimate_plus = 0
+        size_estimate_star = 0
+        for NI in self.merge_network.Nodes():
+            node_id = NI.GetId()
+            label_reach = self.merge_network.GetFltAttrDatN(
+                node_id, Constants.LABEL_REACH+label)
+            size_estimate_plus += label_reach
+            avg_node_weight = super_node_weight = 0
+            if label_reach > 0:
+                avg_node_weight = self.merge_network.GetFltAttrDatN(
+                    node_id, Constants.AVG_NODE_WEIGHT)
+                super_node_weight = self.merge_network.GetFltAttrDatN(
+                    node_id, Constants.SUPER_NODE_WEIGHT)
+                size_estimate_star += (avg_node_weight * super_node_weight)
+            
+        for EI in self.merge_network.Edges():
+            edge_id = EI.GetId()
+            edge_label = self.merge_network.GetStrAttrDatE(
+                edge_id, Constants.EDGE_LABEL)
+            if edge_label == label:
+                edge_weight = self.merge_network.GetFltAttrDatE(
+                    edge_id, Constants.EDGE_WEIGHT)
+                size_estimate_plus += edge_weight
+        size_estimate_plus += size_estimate_star
+        
+        return size_estimate_plus, size_estimate_star
     
     def check_merge_graph(self):
         se_edge_weight = 0
