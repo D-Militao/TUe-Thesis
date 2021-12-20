@@ -115,7 +115,6 @@ def notebook_example_unlabeled_summary_test():
         hyper_node_id = summary.evaluation_network.GetIntAttrDatN(super_node_id, Constants.META_NODE_ID)
         print(node_id, super_node_id, hyper_node_id)
 
-
 def bfs(graph, root_node_id, labels):
     queue = snap.TIntV()
     queue.append(root_node_id)
@@ -171,7 +170,6 @@ def test_labeled_ads():
         est_unlabeled_values[node_id] = est_unlabeled
         print(f'Node id: {node_id}; TC: {tc}; Est unlabeled: {est_unlabeled}; Est labeled: {est_labeled}')
         # print(f'Node id: {node_id}; TC: {tc}; Est labeled: {est_labeled}')
-
     
 def run_estimation_function_paper_test():
     n_iters = 5
@@ -236,8 +234,8 @@ if __name__ == '__main__':
     # Plot sketch unlabeled data results
     # folder_path = 'results/v3-results'
     # drop_headers = ['Function', 'Summary', 'Sketch k=100']
-    # drop_headers.append('Sketch k=5')
-    # drop_headers.append('Sketch k=10')
+    # # drop_headers.append('Sketch k=5')
+    # # drop_headers.append('Sketch k=10')
     # plot_results.sketch_results_plots(
     #     folder_path, drop_headers, 
     #     plot_datasets_separate=False, plot_sketches_separate=True, plot_combined=False)
@@ -288,25 +286,25 @@ if __name__ == '__main__':
     
     # Plot unlabeled summary compression and time
     # filepath = 'results/final/unlabeled_summary/2021-12-04_18h27m20s_results_N=100.csv'
-    # filepath = 'results/2021-12-06_22h26m59s_results_N=100.csv'
+    # filepath = 'results/v4-results/2021-12-15_00h45m29s_results_N=100_fixed.csv'
     # plot_results.unlabeled_summary_plots(filepath)
     
     
     
     # full_test_unlabeled = FullTestUnlabeled(
-    #     calc_tc=True, test_sketch=False, test_summary=True, test_func=False, 
-    #     N=100, k_values=[5, 10, 50]) # seed=42
+    #     calc_tc=False, test_sketch=False, test_summary=True, test_func=False, 
+    #     N=1000, k_values=[5, 10, 50]) # seed=42
     # full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
     
     full_test_labeled_sketch = FullTestLabeledSketch(
         calc_tc=True, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
     full_test_labeled_sketch.start_full_test(
-        max_files_tested=100, num_files_skip=0)
+        max_files_tested=100, num_files_skip=2)
 
     full_test_labeled_summary = FullTestLabeledSummary(
         calc_tc=True, test_summary=True, N=1) # seed=42, 
     full_test_labeled_summary.start_full_test(
-        max_files_tested=100, num_files_skip=0)
+        max_files_tested=100, num_files_skip=2)
 
 
     # full_test_unlabeled = FullTestUnlabeled(
