@@ -699,15 +699,18 @@ class FullTestLabeledSummary:
         while not queue.Empty():
             src_node_id = queue.pop(0)
             NI = graph.GetNI(src_node_id)
-            dst_node_ids = NI.GetOutEdges()
-            for dst_node_id in dst_node_ids:
+            out_deg = NI.GetOutDeg()
+            for edge_idx in range(0, out_deg):
+                dst_node_id = NI.GetOutNId(edge_idx)
                 if dst_node_id not in visited_nodes:
-                    edge_id = graph.GetEI(src_node_id, dst_node_id).GetId()
-                    edge_label = graph.GetStrAttrDatE(edge_id, load_data.__edge_label__)
+                    EI = graph.GetEI(src_node_id, dst_node_id) # .GetId()
+                    edge_label = graph.GetStrAttrDatE(EI, load_data.__edge_label__)
                     if edge_label == label:
                         visited_nodes.AddKey(dst_node_id)
                         queue.append(dst_node_id)
-        return visited_nodes.Len()
+                        
+        size = visited_nodes.Len()
+        return size
     
     def full_transitive_closure(self, graph, label):
         tc = 0
@@ -782,7 +785,7 @@ class FullTestLabeledSummary:
                               header=False, index=False)
             # reinitialize the results dict
             self.init_results()
-
+            
             files_tested += 1
             if files_tested == max_files_tested:
                 break
