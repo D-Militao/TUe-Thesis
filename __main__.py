@@ -296,10 +296,10 @@ if __name__ == '__main__':
     #     N=1000, k_values=[5, 10, 50]) # seed=42
     # full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
     
-    full_test_labeled_sketch = FullTestLabeledSketch(
-        calc_tc=True, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
-    full_test_labeled_sketch.start_full_test(
-        max_files_tested=100, num_files_skip=2)
+    # full_test_labeled_sketch = FullTestLabeledSketch(
+    #     calc_tc=True, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
+    # full_test_labeled_sketch.start_full_test(
+    #     max_files_tested=100, num_files_skip=2)
 
     full_test_labeled_summary = FullTestLabeledSummary(
         calc_tc=True, test_summary=True, N=1) # seed=42, 
