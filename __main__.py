@@ -278,7 +278,13 @@ if __name__ == '__main__':
     ##################
     # LABELED SKETCH #
     ##################
+    # Plot sketch unlabeled data results
+    # folder_path = 'results/final/labeled_sketch'
+    # plot_results.labeled_sketch_results_plots(folder_path)
     
+    # Plot sketch times
+    # filepath = 'results/final/labeled_sketch/labeled_sketch_rw_times.csv'
+    # plot_results.labeled_sketch_time_plots(filepath)
     
     #####################
     # UNLABELED SUMMARY #
@@ -297,12 +303,12 @@ if __name__ == '__main__':
     # full_test_unlabeled.start_full_test(max_files_tested=100, num_files_skip=0)
     
     # full_test_labeled_sketch = FullTestLabeledSketch(
-    #     calc_tc=True, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
+    #     get_node_sample=True, calc_tc=False, test_sketch=True, N=1000, k_values=[5, 10, 50]) # seed=42, 
     # full_test_labeled_sketch.start_full_test(
-    #     max_files_tested=100, num_files_skip=2)
+    #     max_files_tested=100, num_files_skip=0)
 
     full_test_labeled_summary = FullTestLabeledSummary(
-        calc_tc=True, test_summary=True, N=1) # seed=42, 
+        calc_tc=False, test_summary=True, N=1) # seed=42, 
     full_test_labeled_summary.start_full_test(
         max_files_tested=100, num_files_skip=2)
 
